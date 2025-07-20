@@ -2,7 +2,7 @@
 "use client";
 
 import { useState } from "react";
-import Papa from "papaparse";
+import * as XLSX from "xlsx";
 import { Button } from "@/components/ui/button";
 import { Download, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
@@ -23,28 +23,23 @@ export function ExportButton({ data, filename, disabled = false }: ExportButtonP
     setIsExporting(true);
 
     try {
-      const csv = Papa.unparse(data);
-      const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
-      const url = URL.createObjectURL(blob);
-      const link = document.createElement("a");
-      link.setAttribute("href", url);
-      link.setAttribute("download", `${filename}.csv`);
-      link.style.visibility = "hidden";
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
+      const worksheet = XLSX.utils.json_to_sheet(data);
+      const workbook = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(workbook, worksheet, "Datos");
+
+      XLSX.writeFile(workbook, `${filename}.xlsx`);
       
       toast({
         title: "Exportación Exitosa",
-        description: `El archivo ${filename}.csv se ha descargado.`,
+        description: `El archivo ${filename}.xlsx se ha descargado.`,
       });
 
     } catch (error) {
-      console.error("Error exporting to CSV:", error);
+      console.error("Error exporting to XLSX:", error);
       toast({
         variant: "destructive",
         title: "Error de Exportación",
-        description: "No se pudo generar el archivo CSV.",
+        description: "No se pudo generar el archivo XLSX.",
       });
     } finally {
       setIsExporting(false);
@@ -65,7 +60,7 @@ export function ExportButton({ data, filename, disabled = false }: ExportButtonP
         <Download className="h-3.5 w-3.5" />
       )}
       <span className="hidden sm:inline">
-        {isExporting ? "Exportando..." : "Exportar CSV"}
+        {isExporting ? "Exportando..." : "Exportar XLSX"}
       </span>
        <span className="inline sm:hidden">
         {isExporting ? "..." : "Exportar"}
