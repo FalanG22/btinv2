@@ -28,6 +28,7 @@ type StagedSerial = {
 
 // Helper to play a sound
 const playErrorSound = () => {
+    if (typeof window === 'undefined') return;
     const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
     const oscillator = audioContext.createOscillator();
     const gainNode = audioContext.createGain();
@@ -119,9 +120,27 @@ export default function SerialsClient({ zones }: { zones: Zone[] }) {
     });
   };
 
+  const resetFlow = () => {
+      setSelectedZone(null);
+      setSelectedCount(null);
+      setStagedSerials([]);
+      form.reset({ ean: "", zoneId: "", countNumber: undefined });
+      setStep('zone');
+  }
+
   const handleFinalize = () => {
     if (!selectedZone || selectedCount === null || stagedSerials.length === 0) {
         toast({ title: "No serials", description: "There are no serials to upload.", variant: "destructive" });
+        return;
+    }
+    
+    if (isClient && !navigator.onLine) {
+        toast({
+            title: "You are offline",
+            description: "Scans are saved. They will be uploaded when you're back online.",
+            variant: "destructive"
+        });
+        resetFlow();
         return;
     }
 

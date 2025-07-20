@@ -27,6 +27,7 @@ type Step = 'zone' | 'count' | 'scan';
 
 // Helper to play a sound
 const playErrorSound = () => {
+    if (typeof window === 'undefined') return;
     const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
     const oscillator = audioContext.createOscillator();
     const gainNode = audioContext.createGain();
@@ -122,11 +123,30 @@ export default function DashboardClient({ zones }: DashboardClientProps) {
     });
   };
 
+  const resetFlow = () => {
+      setSelectedZone(null);
+      setSelectedCount(null);
+      setStagedScans([]);
+      form.reset({ ean: "", zoneId: "", countNumber: undefined });
+      setStep('zone');
+  }
+
   const handleFinalize = () => {
     if (stagedScans.length === 0) {
         toast({ title: "No scans", description: "There are no scans to upload.", variant: "destructive" });
         return;
     }
+
+    if (isClient && !navigator.onLine) {
+        toast({
+            title: "You are offline",
+            description: "Scans are saved. They will be uploaded when you're back online.",
+            variant: "destructive"
+        });
+        resetFlow();
+        return;
+    }
+
     startFinalizing(async () => {
         const result = await addScansBatch(stagedScans);
          if (result.error) {
