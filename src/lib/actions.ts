@@ -4,7 +4,7 @@
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { getDbScannedArticles, getDbZones, setDbScannedArticles, setDbZones, type ScannedArticle, type Zone, getDbProducts } from "./data";
-import { scanSchema, zoneSchema, scanBatchSchema, serialBatchSchema } from "./schemas";
+import { scanSchema, zoneSchema, scanBatchSchema, serialBatchSchema, zoneBuilderSchema } from "./schemas";
 
 // --- Helper Functions ---
 const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
@@ -16,28 +16,46 @@ export async function getZones(): Promise<Zone[]> {
   return getDbZones().sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
 }
 
-export async function addZone(data: z.infer<typeof zoneSchema>) {
-  const validatedFields = zoneSchema.safeParse(data);
+export async function addZonesBatch(data: z.infer<typeof zoneBuilderSchema>) {
+    const validatedFields = zoneBuilderSchema.safeParse(data);
 
-  if (!validatedFields.success) {
-    return { error: "Invalid data provided." };
-  }
+    if (!validatedFields.success) {
+        return { error: "Invalid data provided for zone builder." };
+    }
 
-  const { name, description } = validatedFields.data;
-  const zones = getDbZones();
-  const newZone: Zone = {
-    id: `zone-${Date.now()}`,
-    name,
-    description,
-    createdAt: new Date().toISOString(),
-  };
+    const { streetPrefix, streetFrom, streetTo, rackPrefix, rackFrom, rackTo } = validatedFields.data;
+    const zones = getDbZones();
+    const newZones: Zone[] = [];
 
-  setDbZones([newZone, ...zones]);
-  revalidatePath("/zones");
-  revalidatePath("/");
-  revalidatePath("/dashboard");
-  return { success: `Zone "${name}" created successfully.` };
+    for (let s = streetFrom; s <= streetTo; s++) {
+        for (let r = rackFrom; r <= rackTo; r++) {
+            const street = s.toString().padStart(2, '0');
+            const rack = r.toString().padStart(2, '0');
+            const zoneName = `${streetPrefix}${street}-${rackPrefix}${rack}`;
+            
+            // Avoid creating duplicates
+            if (!zones.some(z => z.name === zoneName) && !newZones.some(z => z.name === zoneName)) {
+                 newZones.push({
+                    id: `zone-${Date.now()}-${s}-${r}`,
+                    name: zoneName,
+                    description: `Zone located at Street ${street}, Rack ${rack}`,
+                    createdAt: new Date().toISOString(),
+                });
+            }
+        }
+    }
+    
+    if (newZones.length === 0) {
+        return { error: "No new zones to create. They might already exist." };
+    }
+
+    setDbZones([...newZones, ...zones]);
+    revalidatePath("/zones");
+    revalidatePath("/");
+    revalidatePath("/dashboard");
+    return { success: `${newZones.length} zones created successfully.` };
 }
+
 
 export async function updateZone(data: z.infer<typeof zoneSchema>) {
   const validatedFields = zoneSchema.safeParse(data);

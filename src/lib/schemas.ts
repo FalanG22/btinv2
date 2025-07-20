@@ -6,6 +6,21 @@ export const zoneSchema = z.object({
   description: z.string().min(10, { message: "Description must be at least 10 characters." }),
 });
 
+export const zoneBuilderSchema = z.object({
+    streetPrefix: z.string().min(1, { message: "Prefix is required."}).max(3, { message: "Prefix is too long."}),
+    streetFrom: z.number().min(1, { message: "Must be at least 1."}),
+    streetTo: z.number().min(1, { message: "Must be at least 1."}),
+    rackPrefix: z.string().min(1, { message: "Prefix is required."}).max(3, { message: "Prefix is too long."}),
+    rackFrom: z.number().min(1, { message: "Must be at least 1."}),
+    rackTo: z.number().min(1, { message: "Must be at least 1."}),
+}).refine(data => data.streetTo >= data.streetFrom, {
+    message: "Street 'To' must be greater than or equal to 'From'.",
+    path: ["streetTo"],
+}).refine(data => data.rackTo >= data.rackFrom, {
+    message: "Rack 'To' must be greater than or equal to 'From'.",
+    path: ["rackTo"],
+});
+
 export const scanSchema = z.object({
   ean: z.string().min(1, { message: "El código no puede estar vacío." }), // Used for EAN or Serial
   zoneId: z.string({ required_error: "Please select a zone." }).min(1, { message: "Please select a zone." }),
