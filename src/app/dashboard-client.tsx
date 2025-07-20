@@ -16,7 +16,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Combobox } from "@/components/ui/combobox";
-import { Loader2, ScanLine, ArrowLeft, UploadCloud, Trash2, Trash } from "lucide-react";
+import { Loader2, ScanLine, ArrowLeft, UploadCloud, Trash2, Trash, Minus } from "lucide-react";
 import { format } from 'date-fns';
 import PageHeader from "@/components/page-header";
 import {
@@ -31,6 +31,13 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { Badge } from "@/components/ui/badge";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+
 
 type DashboardClientProps = {
   zones: Zone[];
@@ -218,6 +225,24 @@ export default function DashboardClient({ zones }: DashboardClientProps) {
         }
     });
   }
+  
+  const handleDecrementStagedScan = (eanToDecrement: string) => {
+    const updatedScans = [...stagedScans];
+    const lastIndex = updatedScans.map(s => s.ean).lastIndexOf(eanToDecrement);
+    
+    if (lastIndex > -1) {
+        updatedScans.splice(lastIndex, 1);
+        setStagedScans(updatedScans);
+        const key = getStorageKey();
+        if (key) {
+            localStorage.setItem(key, JSON.stringify(updatedScans));
+        }
+        toast({
+            title: "Cantidad reducida",
+            description: `Se ha reducido en uno la cantidad para el EAN ${eanToDecrement}.`,
+        });
+    }
+  };
 
   const handleDeleteStagedScan = (eanToDelete: string) => {
     const updatedScans = stagedScans.filter((scan) => scan.ean !== eanToDelete);
@@ -279,7 +304,7 @@ export default function DashboardClient({ zones }: DashboardClientProps) {
   }, [step, selectedZone, selectedCount]);
 
   return (
-    <>
+    <TooltipProvider>
     <div className="grid flex-1 items-start gap-4 lg:gap-8">
       <PageHeader title={currentTitle}>
         <div className="flex items-center gap-2">
@@ -418,9 +443,28 @@ export default function DashboardClient({ zones }: DashboardClientProps) {
                             <Badge variant="secondary">{scan.quantity}</Badge>
                         </TableCell>
                         <TableCell className="text-right">
-                          <Button variant="ghost" size="icon" onClick={() => handleDeleteStagedScan(scan.ean)}>
-                            <Trash2 className="h-4 w-4 text-destructive" />
-                          </Button>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                                <Button variant="ghost" size="icon" onClick={() => handleDecrementStagedScan(scan.ean)} disabled={scan.quantity <= 0}>
+                                    <Minus className="h-4 w-4" />
+                                    <span className="sr-only">Disminuir uno</span>
+                                </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                                <p>Disminuir uno</p>
+                            </TooltipContent>
+                          </Tooltip>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                                <Button variant="ghost" size="icon" onClick={() => handleDeleteStagedScan(scan.ean)}>
+                                    <Trash2 className="h-4 w-4 text-destructive" />
+                                    <span className="sr-only">Eliminar línea</span>
+                                </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                                <p>Eliminar línea</p>
+                            </TooltipContent>
+                          </Tooltip>
                         </TableCell>
                       </TableRow>
                     ))
@@ -457,8 +501,6 @@ export default function DashboardClient({ zones }: DashboardClientProps) {
             </AlertDialogFooter>
         </AlertDialogContent>
     </AlertDialog>
-    </>
+    </TooltipProvider>
   );
 }
-
-    

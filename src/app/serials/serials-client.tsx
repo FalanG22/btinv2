@@ -30,6 +30,13 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+
 
 type Step = 'zone' | 'count' | 'scan';
 
@@ -198,7 +205,7 @@ export default function SerialsClient({ zones }: { zones: Zone[] }) {
     });
   };
 
-  const handleDeleteStagedSerial = (serialToDelete: string) => {
+  const handleDeleteSingleStagedSerial = (serialToDelete: string) => {
     const updatedSerials = stagedSerials.filter(s => s.serial !== serialToDelete);
     setStagedSerials(updatedSerials);
     const key = getStorageKey();
@@ -212,6 +219,7 @@ export default function SerialsClient({ zones }: { zones: Zone[] }) {
   };
   
   const handleDeleteAllStagedSerials = () => {
+      setStagedSerials([]);
       const key = getStorageKey();
       if (key) {
           localStorage.removeItem(key);
@@ -220,7 +228,6 @@ export default function SerialsClient({ zones }: { zones: Zone[] }) {
           title: "Cola Vaciada",
           description: "Todas las series preparadas para esta sesión han sido eliminadas.",
       });
-      resetFlow();
   };
 
 
@@ -259,7 +266,7 @@ export default function SerialsClient({ zones }: { zones: Zone[] }) {
   }, [step, selectedZone, selectedCount]);
 
   return (
-    <>
+    <TooltipProvider>
     <div className="grid flex-1 items-start gap-4 lg:gap-8">
       <PageHeader title={currentTitle}>
         <div className="flex items-center gap-2">
@@ -278,7 +285,7 @@ export default function SerialsClient({ zones }: { zones: Zone[] }) {
                 </AlertDialogTrigger>
                 <AlertDialogContent>
                     <AlertDialogHeader>
-                        <AlertDialogTitle>¿Estás absolutamente seguro?</AlertDialogTitle>
+                        <AlertDialogTitle>¿Estás absolutely seguro?</AlertDialogTitle>
                         <AlertDialogDescription>
                             Esta acción no se puede deshacer. Se eliminarán permanentemente los {stagedSerials.length} números de serie preparados para esta sesión.
                         </AlertDialogDescription>
@@ -394,9 +401,17 @@ export default function SerialsClient({ zones }: { zones: Zone[] }) {
                         <TableCell className="font-medium">{item.serial}</TableCell>
                         <TableCell>{isClient ? format(new Date(item.scannedAt), "HH:mm:ss") : '...'}</TableCell>
                         <TableCell className="text-right">
-                          <Button variant="ghost" size="icon" onClick={() => handleDeleteStagedSerial(item.serial)}>
-                            <Trash2 className="h-4 w-4 text-destructive" />
-                          </Button>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button variant="ghost" size="icon" onClick={() => handleDeleteSingleStagedSerial(item.serial)}>
+                                <Trash2 className="h-4 w-4 text-destructive" />
+                                <span className="sr-only">Eliminar serie</span>
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              <p>Eliminar serie</p>
+                            </TooltipContent>
+                          </Tooltip>
                         </TableCell>
                       </TableRow>
                     ))
@@ -433,6 +448,6 @@ export default function SerialsClient({ zones }: { zones: Zone[] }) {
             </AlertDialogFooter>
         </AlertDialogContent>
     </AlertDialog>
-    </>
+    </TooltipProvider>
   );
 }
