@@ -1,10 +1,17 @@
+"use client";
+
 import type { ReactNode } from 'react';
 import Sidebar from '@/components/layout/sidebar';
-import { getCurrentUser } from '@/lib/session';
+import { usePathname } from 'next/navigation';
 
 export default function AppLayout({ children }: { children: ReactNode }) {
-  // We can remove the async/await here as the parent layout will handle suspense.
-  // The user data will be fetched in the Sidebar component itself.
+  const pathname = usePathname();
+  const isLoginPage = pathname === '/login';
+
+  if (isLoginPage) {
+    return <>{children}</>;
+  }
+
   return (
     <div className="flex min-h-screen w-full bg-muted/40">
       <Sidebar />
