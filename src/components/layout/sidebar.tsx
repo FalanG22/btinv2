@@ -8,7 +8,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { Truck, ScanLine, MapPin, List, Hash, LayoutDashboard } from "lucide-react";
+import { Truck, ScanLine, MapPin, List, Hash, LayoutDashboard, ListChecks } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const navItems = [
@@ -17,6 +17,7 @@ const navItems = [
   { href: "/serials", icon: Hash, label: "Scan Series" },
   { href: "/zones", icon: MapPin, label: "Zones" },
   { href: "/articles", icon: List, label: "Articles" },
+  { href: "/report", icon: ListChecks, label: "Counts Report" },
 ];
 
 export default function Sidebar() {

@@ -105,10 +105,10 @@ export async function addScansBatch(scans: z.infer<typeof scanBatchSchema>) {
     });
 
     setDbScannedArticles([...newScans, ...allArticles]);
-    revalidatePath("/");
     revalidatePath("/ean");
     revalidatePath("/articles");
     revalidatePath("/dashboard");
+    revalidatePath("/report");
     return { success: `Successfully uploaded ${newScans.length} scans.` };
 }
 
@@ -117,9 +117,9 @@ export async function deleteScan(scanId: string) {
   setDbScannedArticles(articles.filter(a => a.id !== scanId));
 
   revalidatePath("/articles");
-  revalidatePath("/");
   revalidatePath("/ean");
   revalidatePath("/dashboard");
+  revalidatePath("/report");
   return { success: "Scan record deleted successfully." };
 }
 
@@ -152,10 +152,11 @@ export async function addSerialsBatch(serials: string[], zoneId: string, countNu
     revalidatePath("/articles");
     revalidatePath("/serials");
     revalidatePath("/dashboard");
+    revalidatePath("/report");
     return { success: `Successfully uploaded ${newEntries.length} serial numbers.` };
 }
 
-// --- Dashboard Actions ---
+// --- Dashboard & Report Actions ---
 
 export async function getDashboardStats() {
     await delay(100);
@@ -195,4 +196,45 @@ export async function getDashboardStats() {
         totalItems,
         chartData
     };
+}
+
+export type CountsReportItem = {
+    key: string;
+    ean: string;
+    zoneName: string;
+    count1_user: string | null;
+    count2_user: string | null;
+    count3_user: string | null;
+}
+
+export async function getCountsReport(): Promise<CountsReportItem[]> {
+    await delay(50);
+    const scans = getDbScannedArticles();
+
+    const reportMap = scans.reduce((acc, scan) => {
+        const key = `${scan.ean}|${scan.zoneId}`;
+
+        if (!acc[key]) {
+            acc[key] = {
+                key: key,
+                ean: scan.ean,
+                zoneName: scan.zoneName,
+                count1_user: null,
+                count2_user: null,
+                count3_user: null,
+            };
+        }
+
+        if (scan.countNumber === 1) {
+            acc[key].count1_user = scan.userId;
+        } else if (scan.countNumber === 2) {
+            acc[key].count2_user = scan.userId;
+        } else if (scan.countNumber === 3) {
+            acc[key].count3_user = scan.userId;
+        }
+        
+        return acc;
+    }, {} as Record<string, CountsReportItem>);
+
+    return Object.values(reportMap).sort((a, b) => a.ean.localeCompare(b.ean) || a.zoneName.localeCompare(b.zoneName));
 }
