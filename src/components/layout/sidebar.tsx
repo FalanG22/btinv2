@@ -1,3 +1,4 @@
+
 "use client";
 
 import Link from "next/link";
@@ -32,6 +33,10 @@ export default function Sidebar({ user }: { user: AuthenticatedUser }) {
   const userRole = user?.role || 'user';
   const accessibleNavItems = navItems.filter(item => item.roles.includes(userRole));
 
+  const handleLogout = async () => {
+    await logout();
+  }
+
   return (
     <aside className="fixed inset-y-0 left-0 z-10 hidden w-14 flex-col border-r bg-background sm:flex">
       <TooltipProvider>
@@ -63,22 +68,20 @@ export default function Sidebar({ user }: { user: AuthenticatedUser }) {
           ))}
         </nav>
         <div className="mt-auto flex flex-col items-center gap-4 px-2 sm:py-5">
-            <form action={logout}>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                    <Button
-                        type="submit"
-                        size="icon"
-                        variant="ghost"
-                        className="flex h-9 w-9 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:text-foreground md:h-8 md:w-8"
-                    >
-                        <LogOut className="h-5 w-5" />
-                        <span className="sr-only">Cerrar Sesión</span>
-                    </Button>
-                </TooltipTrigger>
-                <TooltipContent side="right">Cerrar Sesión</TooltipContent>
-              </Tooltip>
-            </form>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                  <Button
+                      onClick={handleLogout}
+                      size="icon"
+                      variant="ghost"
+                      className="flex h-9 w-9 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:text-foreground md:h-8 md:w-8"
+                  >
+                      <LogOut className="h-5 w-5" />
+                      <span className="sr-only">Cerrar Sesión</span>
+                  </Button>
+              </TooltipTrigger>
+              <TooltipContent side="right">Cerrar Sesión</TooltipContent>
+            </Tooltip>
         </div>
       </TooltipProvider>
     </aside>

@@ -3,6 +3,7 @@ import './globals.css';
 import { Toaster } from "@/components/ui/toaster";
 import { Inter } from 'next/font/google';
 import AppLayout from '@/components/layout/app-layout';
+import { getCurrentUser } from '@/lib/session';
 
 const inter = Inter({
   subsets: ['latin'],
@@ -15,17 +16,17 @@ export const metadata: Metadata = {
   description: 'Escanea productos y gestiona zonas logísticas',
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const user = await getCurrentUser();
+
   return (
     <html lang="es" suppressHydrationWarning className={inter.variable}>
       <body className="font-body antialiased">
-        <AppLayout>
-          {children}
-        </AppLayout>
+        {user ? <AppLayout>{children}</AppLayout> : children}
         <Toaster />
       </body>
     </html>
