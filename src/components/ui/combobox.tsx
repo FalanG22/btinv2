@@ -6,13 +6,8 @@ import { Check, ChevronsUpDown } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import {
-  Command,
-  CommandEmpty,
-  CommandGroup,
-  CommandInput,
-  CommandItem,
-  CommandList,
-} from "@/components/ui/command"
+  Command as CommandPrimitive,
+} from "cmdk"
 import {
   Popover,
   PopoverContent,
@@ -79,9 +74,6 @@ export function Combobox({ options, value, onChange, placeholder, searchPlacehol
   )
 }
 
-// Need to add Command components to the UI library
-// Since they were not scaffolded, we add them here.
-
 const Command = React.forwardRef<
   React.ElementRef<typeof CommandPrimitive>,
   React.ComponentPropsWithoutRef<typeof CommandPrimitive>
@@ -96,8 +88,6 @@ const Command = React.forwardRef<
   />
 ))
 Command.displayName = "Command"
-
-import { Command as CommandPrimitive } from "cmdk"
 
 const CommandInput = React.forwardRef<
   React.ElementRef<typeof CommandPrimitive.Input>,
