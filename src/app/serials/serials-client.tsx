@@ -6,7 +6,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import type { z } from "zod";
 import { addScan } from "@/lib/actions";
 import type { Zone } from "@/lib/data";
-import { scanSchema }s from "@/lib/schemas";
+import { scanSchema } from "@/lib/schemas";
 import { useToast } from "@/hooks/use-toast";
 
 import { Button } from "@/components/ui/button";
