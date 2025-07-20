@@ -8,11 +8,12 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { Truck, ScanLine, MapPin, List } from "lucide-react";
+import { Truck, ScanLine, MapPin, List, Hash } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const navItems = [
-  { href: "/", icon: ScanLine, label: "Scan" },
+  { href: "/", icon: ScanLine, label: "Scan EAN" },
+  { href: "/serials", icon: Hash, label: "Scan Series" },
   { href: "/zones", icon: MapPin, label: "Zones" },
   { href: "/articles", icon: List, label: "Articles" },
 ];
