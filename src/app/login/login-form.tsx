@@ -3,7 +3,8 @@
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
-import { useFormState, useFormStatus } from "react-dom";
+import { useFormStatus } from "react-dom";
+import { useActionState, useEffect } from "react";
 import { login } from "@/lib/actions";
 
 import { Button } from "@/components/ui/button";
@@ -19,7 +20,6 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
 import { Loader2 } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
 
 const loginSchema = z.object({
@@ -28,7 +28,7 @@ const loginSchema = z.object({
 });
 
 export default function LoginForm() {
-    const [state, dispatch] = useFormState(login, undefined);
+    const [state, dispatch] = useActionState(login, undefined);
     const { toast } = useToast();
 
     const form = useForm<z.infer<typeof loginSchema>>({
