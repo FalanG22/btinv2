@@ -161,3 +161,5 @@ const CommandItem = React.forwardRef<
 ))
 
 CommandItem.displayName = CommandPrimitive.Item.displayName
+
+export { Command, CommandInput, CommandList, CommandEmpty, CommandGroup, CommandItem }
