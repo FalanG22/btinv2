@@ -1,3 +1,4 @@
+
 "use server";
 
 import { revalidatePath } from "next/cache";
@@ -201,10 +202,12 @@ export async function getDashboardStats() {
 export type CountsReportItem = {
     key: string;
     ean: string;
-    zoneName: string;
     count1_user: string | null;
+    count1_zone: string | null;
     count2_user: string | null;
+    count2_zone: string | null;
     count3_user: string | null;
+    count3_zone: string | null;
 }
 
 export async function getCountsReport(): Promise<CountsReportItem[]> {
@@ -212,29 +215,34 @@ export async function getCountsReport(): Promise<CountsReportItem[]> {
     const scans = getDbScannedArticles();
 
     const reportMap = scans.reduce((acc, scan) => {
-        const key = `${scan.ean}|${scan.zoneId}`;
+        const key = scan.ean; // Group by article code only
 
         if (!acc[key]) {
             acc[key] = {
                 key: key,
                 ean: scan.ean,
-                zoneName: scan.zoneName,
                 count1_user: null,
+                count1_zone: null,
                 count2_user: null,
+                count2_zone: null,
                 count3_user: null,
+                count3_zone: null,
             };
         }
 
         if (scan.countNumber === 1) {
             acc[key].count1_user = scan.userId;
+            acc[key].count1_zone = scan.zoneName;
         } else if (scan.countNumber === 2) {
             acc[key].count2_user = scan.userId;
+            acc[key].count2_zone = scan.zoneName;
         } else if (scan.countNumber === 3) {
             acc[key].count3_user = scan.userId;
+            acc[key].count3_zone = scan.zoneName;
         }
         
         return acc;
     }, {} as Record<string, CountsReportItem>);
 
-    return Object.values(reportMap).sort((a, b) => a.ean.localeCompare(b.ean) || a.zoneName.localeCompare(b.zoneName));
+    return Object.values(reportMap).sort((a, b) => a.ean.localeCompare(b.ean));
 }
