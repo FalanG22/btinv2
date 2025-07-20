@@ -130,13 +130,25 @@ export default function DashboardClient({ zones }: DashboardClientProps) {
 
   const onSubmit = (values: z.infer<typeof scanSchema>) => {
     startTransition(async () => {
-      // 1. Validate if EAN exists in master products
-      const { exists } = await validateEan(values.ean);
+      // 1. Validate if EAN exists and is the correct type
+      const { exists, isSerial } = await validateEan(values.ean);
+
       if (!exists) {
         playErrorSound();
         toast({
-          title: "EAN no Encontrado",
+          title: "Código no Encontrado",
           description: `El código "${values.ean}" no existe en el maestro de artículos.`,
+          variant: "destructive",
+        });
+        form.reset({ ean: "", zoneId: selectedZone?.id, countNumber: selectedCount ?? undefined });
+        return;
+      }
+      
+      if (isSerial) {
+        playErrorSound();
+        toast({
+          title: "Tipo de Código Incorrecto",
+          description: "El código escaneado es un Número de Serie. Utiliza la pantalla de 'Escanear Series'.",
           variant: "destructive",
         });
         form.reset({ ean: "", zoneId: selectedZone?.id, countNumber: selectedCount ?? undefined });

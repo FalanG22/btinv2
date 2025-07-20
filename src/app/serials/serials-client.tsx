@@ -130,13 +130,24 @@ export default function SerialsClient({ zones }: { zones: Zone[] }) {
           return;
       }
       
-      // 2. Validate if Serial exists in master products
-      const { exists } = await validateEan(serial);
+      // 2. Validate if Serial exists in master products and is the correct type
+      const { exists, isSerial } = await validateEan(serial);
       if (!exists) {
         playErrorSound();
         toast({
-          title: "Serie no Encontrada",
+          title: "Código no Encontrado",
           description: `La serie "${serial}" no existe en el maestro de artículos.`,
+          variant: "destructive",
+        });
+        form.reset({ ean: "", zoneId: selectedZone?.id, countNumber: selectedCount ?? undefined });
+        return;
+      }
+
+      if (!isSerial) {
+        playErrorSound();
+        toast({
+          title: "Tipo de Código Incorrecto",
+          description: "El código escaneado es un EAN. Utiliza la pantalla de 'Escanear EAN'.",
           variant: "destructive",
         });
         form.reset({ ean: "", zoneId: selectedZone?.id, countNumber: selectedCount ?? undefined });

@@ -317,11 +317,17 @@ export async function addProductsFromCsv(products: Product[]) {
     return { success: `${products.length} artículos importados o actualizados correctamente.` };
 }
 
-export async function validateEan(ean: string): Promise<{ exists: boolean }> {
+export async function validateEan(ean: string): Promise<{ exists: boolean; isSerial: boolean }> {
   const products = getDbProducts();
-  const exists = products.some(p => p.code === ean);
-  return { exists };
+  const product = products.find(p => p.code === ean);
+  const exists = !!product;
+  
+  // A simple heuristic to determine if it's a serial number
+  const isSerial = exists ? /^[a-zA-Z]/.test(product.code) : false;
+  
+  return { exists, isSerial };
 }
+
 
 export async function deleteAllProducts() {
     const session = await getCurrentUser();
