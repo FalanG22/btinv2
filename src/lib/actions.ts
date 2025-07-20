@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { getDbScannedArticles, getDbZones, setDbScannedArticles, setDbZones, type ScannedArticle, type Zone } from "./data";
-import { scanSchema, zoneSchema } from "./schemas";
+import { scanSchema, zoneSchema, scanBatchSchema, serialBatchSchema } from "./schemas";
 
 // --- Helper Functions ---
 const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
@@ -124,4 +124,64 @@ export async function deleteScan(scanId: string) {
   revalidatePath("/articles");
   revalidatePath("/");
   return { success: "Scan record deleted successfully." };
+}
+
+export async function addScansBatch(scans: z.infer<typeof scanBatchSchema>) {
+    const validatedFields = scanBatchSchema.safeParse(scans);
+
+    if (!validatedFields.success) {
+        return { error: "Invalid batch data provided." };
+    }
+
+    const zones = getDbZones();
+    const allArticles = getDbScannedArticles();
+
+    const newScans: ScannedArticle[] = validatedFields.data.map((scan, index) => {
+        const zone = zones.find(z => z.id === scan.zoneId);
+        return {
+            id: `scan-batch-${Date.now()}-${index}`,
+            ean: scan.ean,
+            zoneId: scan.zoneId,
+            zoneName: zone?.name || 'Unknown Zone',
+            scannedAt: scan.scannedAt,
+            userId: `user-batch-${Math.ceil(Math.random() * 3)}`,
+            countNumber: scan.countNumber,
+        };
+    });
+
+    setDbScannedArticles([...newScans, ...allArticles]);
+    revalidatePath("/");
+    revalidatePath("/articles");
+    return { success: `Successfully uploaded ${newScans.length} scans.` };
+}
+
+export async function addSerialsBatch(serials: string[], zoneId: string, countNumber: number) {
+    // In a real app, you would save these serials to a dedicated serials table.
+    // For this demo, we will create ScannedArticle entries with the serial as the EAN.
+    const validatedFields = serialBatchSchema.safeParse({ serials, zoneId, countNumber });
+     if (!validatedFields.success) {
+        return { error: "Invalid serial batch data provided." };
+    }
+
+    const zones = getDbZones();
+    const allArticles = getDbScannedArticles();
+    const zone = zones.find(z => z.id === zoneId);
+
+     if (!zone) {
+        return { error: "Selected zone not found." };
+    }
+
+    const newEntries: ScannedArticle[] = serials.map((serial, index) => ({
+        id: `serial-batch-${Date.now()}-${index}`,
+        ean: serial, // Using EAN field to store serial number
+        zoneId: zoneId,
+        zoneName: zone.name,
+        scannedAt: new Date().toISOString(),
+        userId: `user-serial-${Math.ceil(Math.random() * 3)}`,
+        countNumber: countNumber,
+    }));
+
+    setDbScannedArticles([...newEntries, ...allArticles]);
+    revalidatePath("/articles"); // To see the result in the articles table
+    return { success: `Successfully uploaded ${newEntries.length} serial numbers.` };
 }

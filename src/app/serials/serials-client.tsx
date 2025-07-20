@@ -1,10 +1,10 @@
 "use client";
 
-import { useState, useTransition, useEffect, useMemo } from "react";
+import { useState, useTransition, useEffect, useMemo, useCallback } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import type { z } from "zod";
-import { addScan } from "@/lib/actions";
+import { addSerialsBatch } from "@/lib/actions";
 import type { Zone } from "@/lib/data";
 import { scanSchema } from "@/lib/schemas";
 import { useToast } from "@/hooks/use-toast";
@@ -15,64 +15,109 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Combobox } from "@/components/ui/combobox";
-import { Loader2, ScanLine, ArrowLeft } from "lucide-react";
+import { Loader2, ScanLine, ArrowLeft, UploadCloud } from "lucide-react";
 import { format } from 'date-fns';
 import PageHeader from "@/components/page-header";
 
-type Step = 'zone' | 'scan';
+type Step = 'zone' | 'count' | 'scan';
+
+type StagedSerial = {
+    serial: string;
+    scannedAt: string;
+}
 
 export default function SerialsClient({ zones }: { zones: Zone[] }) {
   const [isPending, startTransition] = useTransition();
+  const [isFinalizing, startFinalizing] = useTransition();
   const { toast } = useToast();
   const [isClient, setIsClient] = useState(false);
   
   const [step, setStep] = useState<Step>('zone');
   const [selectedZone, setSelectedZone] = useState<Zone | null>(null);
-  const [scannedSerials, setScannedSerials] = useState<string[]>([]);
+  const [selectedCount, setSelectedCount] = useState<number | null>(null);
+  const [stagedSerials, setStagedSerials] = useState<StagedSerial[]>([]);
+
+  const getStorageKey = useCallback(() => {
+    if (!selectedZone || !selectedCount) return null;
+    return `stagedSerials_${selectedZone.id}_${selectedCount}`;
+  }, [selectedZone, selectedCount]);
 
   useEffect(() => {
     setIsClient(true);
-  }, []);
+    const key = getStorageKey();
+    if (key) {
+        const savedSerials = localStorage.getItem(key);
+        if (savedSerials) {
+            setStagedSerials(JSON.parse(savedSerials));
+        } else {
+            setStagedSerials([]);
+        }
+    }
+  }, [step, selectedZone, selectedCount, getStorageKey]);
 
   const form = useForm<z.infer<typeof scanSchema>>({
     resolver: zodResolver(scanSchema),
     defaultValues: {
       ean: "",
       zoneId: "",
-      countNumber: 0, // Not used for serials, but schema requires it
+      countNumber: undefined,
     },
   });
 
   useEffect(() => {
-    if (selectedZone) {
-      form.setValue("zoneId", selectedZone.id);
-    }
-  }, [selectedZone, form]);
-
+    if (selectedZone) form.setValue("zoneId", selectedZone.id);
+    if (selectedCount) form.setValue("countNumber", selectedCount);
+  }, [selectedZone, selectedCount, form]);
 
   const onSubmit = (values: z.infer<typeof scanSchema>) => {
     const serial = values.ean;
-    if (scannedSerials.includes(serial)) {
+    if (stagedSerials.some(s => s.serial === serial)) {
         toast({
             title: "Serial Duplicado",
             description: "Este número de serie ya ha sido escaneado en esta sesión.",
             variant: "destructive"
         });
-        form.reset({ ean: "", zoneId: selectedZone?.id, countNumber: 0 });
+        form.reset({ ean: "", zoneId: selectedZone?.id, countNumber: selectedCount });
         return;
     }
 
-    startTransition(async () => {
-        // Here you would typically save the serial number.
-        // For this demo, we'll just add it to the local list.
-        await new Promise(res => setTimeout(res, 300)); // Simulate API call
+    startTransition(() => {
+        const newSerial = { serial, scannedAt: new Date().toISOString() };
+        const updatedSerials = [newSerial, ...stagedSerials];
+        setStagedSerials(updatedSerials);
+        
+        const key = getStorageKey();
+        if (key) {
+            localStorage.setItem(key, JSON.stringify(updatedSerials));
+        }
 
-        setScannedSerials(prev => [serial, ...prev]);
         toast({
-          title: "Success",
-          description: `Número de serie ${serial} registrado.`,
+          title: "Serial Added",
+          description: `Número de serie ${serial} preparado para cargar.`,
         });
-        form.reset({ ean: "", zoneId: selectedZone?.id, countNumber: 0 });
+        form.reset({ ean: "", zoneId: selectedZone?.id, countNumber: selectedCount });
+    });
+  };
+
+  const handleFinalize = () => {
+    if (!selectedZone || selectedCount === null || stagedSerials.length === 0) {
+        toast({ title: "No serials", description: "There are no serials to upload.", variant: "destructive" });
+        return;
+    }
+
+    startFinalizing(async () => {
+        const serialsToUpload = stagedSerials.map(s => s.serial);
+        const result = await addSerialsBatch(serialsToUpload, selectedZone.id, selectedCount);
+        if (result.error) {
+            toast({ title: "Error", description: result.error, variant: "destructive" });
+        } else {
+            toast({ title: "Success", description: result.success });
+            setStagedSerials([]);
+            const key = getStorageKey();
+            if (key) {
+                localStorage.removeItem(key);
+            }
+        }
     });
   };
 
@@ -80,31 +125,49 @@ export default function SerialsClient({ zones }: { zones: Zone[] }) {
     const zone = zones.find(z => z.id === zoneId);
     if (zone) {
       setSelectedZone(zone);
-      setStep('scan');
+      setStep('count');
     }
   };
 
+  const handleCountSelect = (count: number) => {
+    setSelectedCount(count);
+    setStep('scan');
+  };
+
   const handleBack = () => {
-    setStep('zone');
-    setSelectedZone(null);
-    setScannedSerials([]);
-    form.reset({ ean: "", zoneId: "", countNumber: 0 });
+    setStagedSerials([]);
+    if (step === 'scan') {
+      setStep('count');
+      setSelectedCount(null);
+    } else if (step === 'count') {
+      setStep('zone');
+      setSelectedZone(null);
+    }
   };
   
   const zoneOptions = zones.map(zone => ({ label: zone.name, value: zone.id }));
 
   const currentTitle = useMemo(() => {
-    if (step === 'zone') return 'Seleccionar Zona para Series';
-    if (step === 'scan') return `Escaneo de Series - Zona: ${selectedZone?.name}`;
+    if (step === 'zone') return 'Escaneo de Series: Seleccionar Zona';
+    if (step === 'count') return `Series - Zona: ${selectedZone?.name}`;
+    if (step === 'scan') return `Series - Zona: ${selectedZone?.name} - Conteo ${selectedCount}`;
     return 'Scan';
-  }, [step, selectedZone]);
+  }, [step, selectedZone, selectedCount]);
 
   return (
     <div className="grid flex-1 items-start gap-4">
       <PageHeader title={currentTitle}>
-        {step !== 'zone' && (
-           <Button variant="outline" size="sm" onClick={handleBack}><ArrowLeft className="mr-2 h-4 w-4" />Volver</Button>
-        )}
+        <div className="flex items-center gap-2">
+          {step === 'scan' && (
+            <Button onClick={handleFinalize} disabled={isFinalizing || stagedSerials.length === 0}>
+                {isFinalizing ? <Loader2 className="mr-2 animate-spin" /> : <UploadCloud className="mr-2" />}
+                Finalize & Upload ({stagedSerials.length})
+            </Button>
+          )}
+          {step !== 'zone' && (
+            <Button variant="outline" size="sm" onClick={handleBack}><ArrowLeft className="mr-2 h-4 w-4" />Volver</Button>
+          )}
+        </div>
       </PageHeader>
 
       {step === 'zone' && (
@@ -125,13 +188,28 @@ export default function SerialsClient({ zones }: { zones: Zone[] }) {
         </Card>
       )}
 
+      {step === 'count' && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Seleccionar Número de Conteo</CardTitle>
+            <CardDescription>Elige el número de conteo para esta sesión de escaneo.</CardDescription>
+          </CardHeader>
+          <CardContent className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            {[1, 2, 3].map(num => (
+              <Button key={num} onClick={() => handleCountSelect(num)} className="h-24 text-2xl">
+                Conteo {num}
+              </Button>
+            ))}
+          </CardContent>
+        </Card>
+      )}
 
       {step === 'scan' && (
         <div className="grid auto-rows-max items-start gap-4 lg:grid-cols-2 lg:gap-8">
           <Card className="w-full">
             <CardHeader>
               <CardTitle>Escanear Número de Serie</CardTitle>
-              <CardDescription>Ingresa un número de serie para registrarlo.</CardDescription>
+              <CardDescription>Ingresa un número de serie para prepararlo para la carga.</CardDescription>
             </CardHeader>
             <CardContent>
               <Form {...form}>
@@ -153,14 +231,8 @@ export default function SerialsClient({ zones }: { zones: Zone[] }) {
                    <FormField control={form.control} name="countNumber" render={() => <FormItem />} />
 
                   <Button type="submit" disabled={isPending} className="w-full">
-                    {isPending ? (
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    ) : (
-                      <>
-                        <ScanLine className="mr-2 h-4 w-4" />
-                        <span>Record Scan ({scannedSerials.length})</span>
-                      </>
-                    )}
+                    {isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <ScanLine className="mr-2 h-4 w-4" />}
+                    Añadir Serie a la Cola
                   </Button>
                 </form>
               </Form>
@@ -169,9 +241,9 @@ export default function SerialsClient({ zones }: { zones: Zone[] }) {
 
           <Card>
             <CardHeader>
-              <CardTitle>Series Escaneadas</CardTitle>
-              <CardDescription>Números de serie escaneados en esta sesión.</CardDescription>
-            </CardHeader>
+              <CardTitle>Series Preparadas</CardTitle>
+              <CardDescription>Números de serie esperando para ser cargados.</CardDescription>
+            </Header>
             <CardContent>
               <Table>
                 <TableHeader>
@@ -181,16 +253,16 @@ export default function SerialsClient({ zones }: { zones: Zone[] }) {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {scannedSerials.length > 0 ? (
-                    scannedSerials.map(serial => (
-                      <TableRow key={serial}>
-                        <TableCell className="font-medium">{serial}</TableCell>
-                        <TableCell>{isClient ? format(new Date(), "HH:mm:ss") : '...'}</TableCell>
+                  {stagedSerials.length > 0 ? (
+                    stagedSerials.map(item => (
+                      <TableRow key={item.serial}>
+                        <TableCell className="font-medium">{item.serial}</TableCell>
+                        <TableCell>{isClient ? format(new Date(item.scannedAt), "HH:mm:ss") : '...'}</TableCell>
                       </TableRow>
                     ))
                   ) : (
                     <TableRow>
-                      <TableCell colSpan={2} className="text-center h-24">No hay series escaneadas.</TableCell>
+                      <TableCell colSpan={2} className="text-center h-24">No hay series preparadas.</TableCell>
                     </TableRow>
                   )}
                 </TableBody>

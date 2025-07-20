@@ -1,10 +1,10 @@
 "use client";
 
-import { useState, useTransition, useEffect, useMemo } from "react";
+import { useState, useTransition, useEffect, useMemo, useCallback } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import type { z } from "zod";
-import { addScan, getRecentScans } from "@/lib/actions";
+import { addScansBatch } from "@/lib/actions";
 import type { ScannedArticle, Zone } from "@/lib/data";
 import { scanSchema } from "@/lib/schemas";
 import { useToast } from "@/hooks/use-toast";
@@ -15,7 +15,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Combobox } from "@/components/ui/combobox";
-import { Loader2, ScanLine, ArrowLeft } from "lucide-react";
+import { Loader2, ScanLine, ArrowLeft, UploadCloud } from "lucide-react";
 import { format } from 'date-fns';
 import PageHeader from "@/components/page-header";
 
@@ -27,17 +27,32 @@ type Step = 'zone' | 'count' | 'scan';
 
 export default function DashboardClient({ zones }: DashboardClientProps) {
   const [isPending, startTransition] = useTransition();
+  const [isFinalizing, startFinalizing] = useTransition();
   const { toast } = useToast();
-  const [recentScans, setRecentScans] = useState<ScannedArticle[]>([]);
   const [isClient, setIsClient] = useState(false);
   
   const [step, setStep] = useState<Step>('zone');
   const [selectedZone, setSelectedZone] = useState<Zone | null>(null);
   const [selectedCount, setSelectedCount] = useState<number | null>(null);
+  const [stagedScans, setStagedScans] = useState<Omit<ScannedArticle, 'id' | 'zoneName' | 'userId'>[]>([]);
+
+  const getStorageKey = useCallback(() => {
+    if (!selectedZone || !selectedCount) return null;
+    return `stagedScans_${selectedZone.id}_${selectedCount}`;
+  }, [selectedZone, selectedCount]);
 
   useEffect(() => {
     setIsClient(true);
-  }, []);
+    const key = getStorageKey();
+    if (key) {
+      const savedScans = localStorage.getItem(key);
+      if (savedScans) {
+        setStagedScans(JSON.parse(savedScans));
+      } else {
+        setStagedScans([]);
+      }
+    }
+  }, [step, selectedZone, selectedCount, getStorageKey]);
 
   const form = useForm<z.infer<typeof scanSchema>>({
     resolver: zodResolver(scanSchema),
@@ -49,44 +64,53 @@ export default function DashboardClient({ zones }: DashboardClientProps) {
   });
 
   useEffect(() => {
-    if (selectedZone) {
-      form.setValue("zoneId", selectedZone.id);
-    }
-    if (selectedCount) {
-      form.setValue("countNumber", selectedCount);
-    }
+    if (selectedZone) form.setValue("zoneId", selectedZone.id);
+    if (selectedCount !== null) form.setValue("countNumber", selectedCount);
   }, [selectedZone, selectedCount, form]);
 
-  useEffect(() => {
-    if (step === 'scan' && selectedZone && selectedCount) {
-        startTransition(async () => {
-            const scans = await getRecentScans(selectedZone.id, selectedCount, 5);
-            setRecentScans(scans);
-        });
-    }
-  }, [step, selectedZone, selectedCount]);
-
   const onSubmit = (values: z.infer<typeof scanSchema>) => {
-    startTransition(async () => {
-      const result = await addScan(values);
-      if (result.error) {
-        toast({
-          title: "Error",
-          description: result.error,
-          variant: "destructive",
-        });
-      } else {
-        toast({
-          title: "Success",
-          description: result.success,
-        });
-        if (result.newScan) {
-            setRecentScans(prev => [result.newScan!, ...prev].slice(0, 5));
+    startTransition(() => {
+        const newScan = {
+            ean: values.ean,
+            scannedAt: new Date().toISOString(),
+            zoneId: values.zoneId,
+            countNumber: values.countNumber,
+        };
+        const updatedScans = [newScan, ...stagedScans];
+        setStagedScans(updatedScans);
+
+        const key = getStorageKey();
+        if(key) {
+            localStorage.setItem(key, JSON.stringify(updatedScans));
         }
+
+        toast({
+          title: "Scan Added",
+          description: `EAN ${values.ean} staged for upload.`,
+        });
         form.reset({ ean: "", zoneId: selectedZone?.id, countNumber: selectedCount });
-      }
     });
   };
+
+  const handleFinalize = () => {
+    if (stagedScans.length === 0) {
+        toast({ title: "No scans", description: "There are no scans to upload.", variant: "destructive" });
+        return;
+    }
+    startFinalizing(async () => {
+        const result = await addScansBatch(stagedScans);
+         if (result.error) {
+            toast({ title: "Error", description: result.error, variant: "destructive" });
+        } else {
+            toast({ title: "Success", description: result.success });
+            setStagedScans([]);
+            const key = getStorageKey();
+            if (key) {
+                localStorage.removeItem(key);
+            }
+        }
+    });
+  }
 
   const handleZoneSelect = (zoneId: string) => {
     const zone = zones.find(z => z.id === zoneId);
@@ -102,10 +126,10 @@ export default function DashboardClient({ zones }: DashboardClientProps) {
   };
 
   const handleBack = () => {
+    setStagedScans([]);
     if (step === 'scan') {
       setStep('count');
       setSelectedCount(null);
-      setRecentScans([]);
     } else if (step === 'count') {
       setStep('zone');
       setSelectedZone(null);
@@ -124,9 +148,17 @@ export default function DashboardClient({ zones }: DashboardClientProps) {
   return (
     <div className="grid flex-1 items-start gap-4 p-4 sm:px-6 lg:gap-8">
       <PageHeader title={currentTitle}>
-        {step !== 'zone' && (
-           <Button variant="outline" size="sm" onClick={handleBack}><ArrowLeft className="mr-2 h-4 w-4" />Back</Button>
-        )}
+        <div className="flex items-center gap-2">
+            {step === 'scan' && (
+                <Button onClick={handleFinalize} disabled={isFinalizing || stagedScans.length === 0}>
+                    {isFinalizing ? <Loader2 className="mr-2 animate-spin" /> : <UploadCloud className="mr-2" />}
+                    Finalize & Upload ({stagedScans.length})
+                </Button>
+            )}
+            {step !== 'zone' && (
+               <Button variant="outline" size="sm" onClick={handleBack}><ArrowLeft className="mr-2 h-4 w-4" />Back</Button>
+            )}
+        </div>
       </PageHeader>
 
       {step === 'zone' && (
@@ -168,7 +200,7 @@ export default function DashboardClient({ zones }: DashboardClientProps) {
           <Card className="w-full">
             <CardHeader>
               <CardTitle>Scan Article</CardTitle>
-              <CardDescription>Enter an EAN code to record a scan.</CardDescription>
+              <CardDescription>Enter an EAN code to stage it for upload.</CardDescription>
             </CardHeader>
             <CardContent>
               <Form {...form}>
@@ -180,7 +212,7 @@ export default function DashboardClient({ zones }: DashboardClientProps) {
                       <FormItem>
                         <FormLabel>EAN / Barcode</FormLabel>
                         <FormControl>
-                          <Input placeholder="e.g., 8412345678901" {...field} />
+                          <Input placeholder="e.g., 8412345678901" {...field} autoFocus />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -195,7 +227,7 @@ export default function DashboardClient({ zones }: DashboardClientProps) {
                     ) : (
                       <ScanLine className="mr-2 h-4 w-4" />
                     )}
-                    Record Scan
+                    Add Scan to Queue
                   </Button>
                 </form>
               </Form>
@@ -204,8 +236,8 @@ export default function DashboardClient({ zones }: DashboardClientProps) {
 
           <Card>
             <CardHeader>
-              <CardTitle>Recent Scans (Conteo {selectedCount})</CardTitle>
-              <CardDescription>Most recently scanned articles in this session.</CardDescription>
+              <CardTitle>Staged Scans (Conteo {selectedCount})</CardTitle>
+              <CardDescription>Articles waiting to be uploaded.</CardDescription>
             </CardHeader>
             <CardContent>
               <Table>
@@ -216,16 +248,16 @@ export default function DashboardClient({ zones }: DashboardClientProps) {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {recentScans.length > 0 ? (
-                    recentScans.map(scan => (
-                      <TableRow key={scan.id}>
+                  {stagedScans.length > 0 ? (
+                    stagedScans.map((scan, index) => (
+                      <TableRow key={`${scan.ean}-${index}`}>
                         <TableCell className="font-medium">{scan.ean}</TableCell>
                         <TableCell>{isClient ? format(new Date(scan.scannedAt), "HH:mm:ss") : '...'}</TableCell>
                       </TableRow>
                     ))
                   ) : (
                     <TableRow>
-                      <TableCell colSpan={2} className="text-center h-24">No recent scans.</TableCell>
+                      <TableCell colSpan={2} className="text-center h-24">No staged scans.</TableCell>
                     </TableRow>
                   )}
                 </TableBody>
