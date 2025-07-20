@@ -1,6 +1,6 @@
 "use client";
 
-import { useTransition } from "react";
+import { useTransition, useState, useEffect } from "react";
 import { deleteScan } from "@/lib/actions";
 import type { ScannedArticle } from "@/lib/data";
 import { useToast } from "@/hooks/use-toast";
@@ -34,6 +34,11 @@ import { Badge } from "@/components/ui/badge";
 export function ArticlesTable({ data }: { data: ScannedArticle[] }) {
   const [isPending, startTransition] = useTransition();
   const { toast } = useToast();
+  const [isClient, setIsClient] = useState(false);
+
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
 
   const handleDelete = (scanId: string) => {
     startTransition(async () => {
@@ -78,7 +83,7 @@ export function ArticlesTable({ data }: { data: ScannedArticle[] }) {
                     </TableCell>
                     <TableCell className="hidden md:table-cell">{article.userId}</TableCell>
                     <TableCell className="hidden md:table-cell">
-                      {format(new Date(article.scannedAt), "MMMM d, yyyy 'at' HH:mm")}
+                      {isClient ? format(new Date(article.scannedAt), "MMMM d, yyyy 'at' HH:mm") : '...'}
                     </TableCell>
                     <TableCell>
                       <AlertDialog>
