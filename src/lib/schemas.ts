@@ -5,6 +5,7 @@ export const userSchema = z.object({
   id: z.string().optional(),
   name: z.string().min(3, { message: "Name must be at least 3 characters." }),
   email: z.string().email({ message: "Please enter a valid email." }),
+  password: z.string().optional(),
   companyId: z.string().min(1, { message: "Please select a company." }),
   role: z.enum(['admin', 'user'], { required_error: "Please select a role." }),
 });

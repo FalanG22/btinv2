@@ -37,7 +37,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Loader2, PlusCircle, UserPlus, Pencil } from "lucide-react";
+import { Loader2, UserPlus, Sparkles, Eye, EyeOff } from "lucide-react";
 
 type UserDialogProps = {
   user?: User;
@@ -48,6 +48,7 @@ type UserDialogProps = {
 export function UserDialog({ user, children, companies }: UserDialogProps) {
   const [open, setOpen] = useState(false);
   const [isPending, startTransition] = useTransition();
+  const [showPassword, setShowPassword] = useState(false);
   const { toast } = useToast();
 
   const isEditMode = !!user;
@@ -58,14 +59,32 @@ export function UserDialog({ user, children, companies }: UserDialogProps) {
       id: user?.id,
       name: user?.name || "",
       email: user?.email || "",
-      // Default to the first (and likely only) company available to the admin
+      password: "",
       companyId: user?.companyId || companies[0]?.id || "",
       role: user?.role || "user",
     },
   });
 
+  const generatePassword = () => {
+    const chars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*()";
+    let password = "";
+    for (let i = 0; i < 12; i++) {
+      password += chars.charAt(Math.floor(Math.random() * chars.length));
+    }
+    form.setValue("password", password, { shouldValidate: true });
+    toast({ title: "Password Generated", description: "A new secure password has been generated." });
+  };
+
+
   const onSubmit = (values: z.infer<typeof userSchema>) => {
     startTransition(async () => {
+      // In a real app, you'd never submit an empty password for a new user.
+      // This is simplified for the demo.
+      if (!isEditMode && !values.password) {
+        toast({ title: "Error", description: "Password is required for new users.", variant: "destructive" });
+        return;
+      }
+
       const result = isEditMode
         ? await updateUser(values)
         : await createUser(values);
@@ -78,6 +97,7 @@ export function UserDialog({ user, children, companies }: UserDialogProps) {
         form.reset({
           name: "",
           email: "",
+          password: "",
           companyId: companies[0]?.id || "",
           role: "user"
         });
@@ -130,6 +150,40 @@ export function UserDialog({ user, children, companies }: UserDialogProps) {
                 </FormItem>
               )}
             />
+             <FormField
+                control={form.control}
+                name="password"
+                render={({ field }) => (
+                    <FormItem>
+                        <FormLabel>Password</FormLabel>
+                        <div className="flex gap-2">
+                            <FormControl>
+                               <div className="relative w-full">
+                                <Input
+                                    type={showPassword ? "text" : "password"}
+                                    placeholder={isEditMode ? "Leave blank to keep current" : "Enter a password"}
+                                    {...field}
+                                />
+                                <Button
+                                    type="button"
+                                    variant="ghost"
+                                    size="icon"
+                                    className="absolute right-1 top-1/2 h-7 w-7 -translate-y-1/2 text-muted-foreground"
+                                    onClick={() => setShowPassword(!showPassword)}
+                                >
+                                    {showPassword ? <EyeOff /> : <Eye />}
+                                </Button>
+                               </div>
+                            </FormControl>
+                             <Button type="button" variant="outline" onClick={generatePassword} className="shrink-0">
+                                <Sparkles className="mr-2" />
+                                Generate
+                            </Button>
+                        </div>
+                        <FormMessage />
+                    </FormItem>
+                )}
+                />
             <FormField
               control={form.control}
               name="companyId"

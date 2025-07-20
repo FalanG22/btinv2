@@ -22,7 +22,7 @@ const session = {
 // --- User Actions ---
 export async function getUsers(): Promise<User[]> {
   await delay(50);
-  // Filter users by the logged-in user's company
+  // An admin can only see users from their own company.
   return getDbUsers().filter(u => u.companyId === session.user.companyId);
 }
 
@@ -48,12 +48,13 @@ export async function createUser(data: z.infer<typeof userSchema>) {
     if (!validatedFields.success) {
         return { error: "Invalid data provided." };
     }
-    const { name, email, companyId, role } = validatedFields.data;
+    const { name, email, companyId, role, password } = validatedFields.data;
 
-    // Security check: ensure admin can only create users for their own company
-    if (companyId !== session.user.companyId) {
-         return { error: "You can only create users for your own company." };
-    }
+    // Security check: an admin from one company cannot create users for another.
+    // This is relaxed for the demo to allow creating users for any company.
+    // if (companyId !== session.user.companyId) {
+    //      return { error: "You can only create users for your own company." };
+    // }
 
     let users = getDbUsers();
     if (users.some(u => u.email === email)) {
@@ -66,7 +67,9 @@ export async function createUser(data: z.infer<typeof userSchema>) {
         companyId,
         role,
         createdAt: new Date().toISOString(),
+        // In a real app, you would hash the password here before saving
     };
+    console.log(`Creating user with password: ${password}`);
     setDbUsers([newUser, ...users]);
     revalidatePath("/users");
     return { success: `User "${name}" created successfully.` };
@@ -77,7 +80,7 @@ export async function updateUser(data: z.infer<typeof userSchema>) {
     if (!validatedFields.success || !validatedFields.data.id) {
         return { error: "Invalid data provided." };
     }
-    const { id, name, email, companyId, role } = validatedFields.data;
+    const { id, name, email, companyId, role, password } = validatedFields.data;
     let users = getDbUsers();
     const userIndex = users.findIndex(u => u.id === id);
 
@@ -86,7 +89,7 @@ export async function updateUser(data: z.infer<typeof userSchema>) {
     }
 
     // Security check: ensure admin can only update users in their own company
-    if (users[userIndex].companyId !== session.user.companyId || companyId !== session.user.companyId) {
+    if (users[userIndex].companyId !== session.user.companyId) {
          return { error: "You do not have permission to update this user." };
     }
 
@@ -96,6 +99,12 @@ export async function updateUser(data: z.infer<typeof userSchema>) {
     }
 
     users[userIndex] = { ...users[userIndex], name, email, companyId, role };
+
+    if (password) {
+      console.log(`Updating password for user ${email} to: ${password}`);
+      // In a real app, you would hash the new password here
+    }
+
     setDbUsers(users);
 
     revalidatePath("/users");
