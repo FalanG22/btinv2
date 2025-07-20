@@ -15,7 +15,7 @@ const session = {
     user: {
       id: 'user-admin',
       role: 'admin',
-      companyId: 'company-1'
+      companyId: 'company-sc'
     }
 };
 
@@ -27,7 +27,7 @@ export async function getUsers(): Promise<User[]> {
 }
 
 export async function deleteUser(userId: string) {
-    if (userId === 'user-admin') {
+    if (userId === 'user-admin' || userId === 'user-admin-bt') {
         return { error: "Cannot delete the default admin user." };
     }
     let users = getDbUsers();
