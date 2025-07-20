@@ -389,19 +389,19 @@ export async function addScansBatch(scans: z.infer<typeof scanBatchSchema>) {
     return { success: `Se cargaron ${newScans.length} escaneos con éxito.` };
 }
 
-export async function deleteScan(scanId: string) {
+export async function deleteScanByEan(ean: string) {
   const session = await getCurrentUser();
   if (!session) return { error: "No autorizado." };
 
   let articles = getDbScannedArticles();
-  const scan = articles.find(a => a.id === scanId);
+  const scansForEan = articles.filter(a => a.ean === ean && a.companyId === session.companyId);
 
   // Security check
-  if (!scan || scan.companyId !== session.companyId) {
-      return { error: "No tienes permiso para eliminar este escaneo." };
+  if (scansForEan.length === 0) {
+      return { error: "No se encontraron escaneos para este código." };
   }
 
-  setDbScannedArticles(articles.filter(a => a.id !== scanId));
+  setDbScannedArticles(articles.filter(a => a.ean !== ean || a.companyId !== session.companyId));
 
   revalidatePath("/scans");
   revalidatePath("/ean");
@@ -410,7 +410,7 @@ export async function deleteScan(scanId: string) {
   revalidatePath("/report");
   revalidatePath("/sku-summary");
   revalidatePath("/zone-summary");
-  return { success: "Registro de escaneo eliminado con éxito." };
+  return { success: `Se eliminaron ${scansForEan.length} registros para el código ${ean}.` };
 }
 
 export async function deleteAllScans() {

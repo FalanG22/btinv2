@@ -1,7 +1,8 @@
+
 "use client";
 
 import { useTransition, useState, useEffect } from "react";
-import { deleteScan } from "@/lib/actions";
+import { deleteScanByEan } from "@/lib/actions";
 import type { ScannedArticle } from "@/lib/data";
 import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
@@ -31,7 +32,18 @@ import { MoreHorizontal, Printer, Trash2, Hash, ScanLine } from "lucide-react";
 import { PrintLabel } from "./print-label";
 import { Badge } from "@/components/ui/badge";
 
-export function ScansTable({ data }: { data: ScannedArticle[] }) {
+export type GroupedScan = {
+  ean: string;
+  sku: string;
+  description: string;
+  isSerial: boolean;
+  zoneName: string;
+  countNumber: number;
+  lastScannedAt: string;
+  quantity: number;
+};
+
+export function ScansTable({ data }: { data: GroupedScan[] }) {
   const [isPending, startTransition] = useTransition();
   const { toast } = useToast();
   const [isClient, setIsClient] = useState(false);
@@ -40,9 +52,9 @@ export function ScansTable({ data }: { data: ScannedArticle[] }) {
     setIsClient(true);
   }, []);
 
-  const handleDelete = (scanId: string) => {
+  const handleDelete = (ean: string) => {
     startTransition(async () => {
-      const result = await deleteScan(scanId);
+      const result = await deleteScanByEan(ean);
       if (result.error) {
         toast({ title: "Error", description: result.error, variant: "destructive" });
       } else {
@@ -56,7 +68,7 @@ export function ScansTable({ data }: { data: ScannedArticle[] }) {
       <Card>
         <CardHeader>
           <CardTitle>Historial de Escaneos</CardTitle>
-          <CardDescription>Un listado de todos los registros de escaneo de artículos.</CardDescription>
+          <CardDescription>Un listado agrupado de todos los registros de escaneo de artículos.</CardDescription>
         </CardHeader>
         <CardContent>
           <Table>
@@ -66,9 +78,10 @@ export function ScansTable({ data }: { data: ScannedArticle[] }) {
                 <TableHead>SKU</TableHead>
                 <TableHead>Descripción</TableHead>
                 <TableHead>Tipo</TableHead>
-                <TableHead>Zona</TableHead>
-                <TableHead>Conteo</TableHead>
-                <TableHead className="hidden md:table-cell">Escaneado en</TableHead>
+                <TableHead className="text-center">Cantidad</TableHead>
+                <TableHead>Zona (última)</TableHead>
+                <TableHead>Conteo (último)</TableHead>
+                <TableHead className="hidden md:table-cell">Último Escaneo</TableHead>
                 <TableHead>
                   <span className="sr-only">Acciones</span>
                 </TableHead>
@@ -76,13 +89,13 @@ export function ScansTable({ data }: { data: ScannedArticle[] }) {
             </TableHeader>
             <TableBody>
               {data.length > 0 ? (
-                data.map((article) => (
-                  <TableRow key={article.id}>
-                    <TableCell className="font-medium">{article.ean}</TableCell>
-                    <TableCell>{article.sku}</TableCell>
-                    <TableCell>{article.description}</TableCell>
+                data.map((item) => (
+                  <TableRow key={item.ean}>
+                    <TableCell className="font-medium">{item.ean}</TableCell>
+                    <TableCell>{item.sku}</TableCell>
+                    <TableCell>{item.description}</TableCell>
                     <TableCell>
-                      {article.isSerial ? (
+                      {item.isSerial ? (
                         <Badge variant="outline" className="gap-1 pl-2 pr-3">
                             <Hash className="h-3 w-3" /> Serie
                         </Badge>
@@ -92,12 +105,17 @@ export function ScansTable({ data }: { data: ScannedArticle[] }) {
                          </Badge>
                       )}
                     </TableCell>
-                    <TableCell>{article.zoneName}</TableCell>
+                    <TableCell className="text-center">
+                      <Badge variant={item.quantity > 1 ? "default" : "secondary"}>
+                        {item.quantity}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>{item.zoneName}</TableCell>
                     <TableCell>
-                        <Badge variant="secondary">C{article.countNumber}</Badge>
+                        <Badge variant="secondary">C{item.countNumber}</Badge>
                     </TableCell>
                     <TableCell className="hidden md:table-cell">
-                      {isClient ? format(new Date(article.scannedAt), "d 'de' MMMM, yyyy 'a las' HH:mm") : '...'}
+                      {isClient ? format(new Date(item.lastScannedAt), "d MMM, yyyy HH:mm") : '...'}
                     </TableCell>
                     <TableCell>
                       <AlertDialog>
@@ -110,12 +128,6 @@ export function ScansTable({ data }: { data: ScannedArticle[] }) {
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end">
                             <DropdownMenuLabel>Acciones</DropdownMenuLabel>
-                            <PrintLabel article={article}>
-                                <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
-                                    <Printer className="mr-2 h-4 w-4" />
-                                    Imprimir Etiqueta
-                                </DropdownMenuItem>
-                            </PrintLabel>
                             <AlertDialogTrigger asChild>
                               <DropdownMenuItem className="text-destructive">
                                 <Trash2 className="mr-2 h-4 w-4" />
@@ -128,13 +140,13 @@ export function ScansTable({ data }: { data: ScannedArticle[] }) {
                           <AlertDialogHeader>
                             <AlertDialogTitle>¿Estás absolutamente seguro?</AlertDialogTitle>
                             <AlertDialogDescription>
-                              Esta acción no se puede deshacer. Esto eliminará permanentemente este registro de escaneo.
+                              Esta acción no se puede deshacer. Esto eliminará permanentemente los {item.quantity} registros de escaneo para el código "{item.ean}".
                             </AlertDialogDescription>
                           </AlertDialogHeader>
                           <AlertDialogFooter>
                             <AlertDialogCancel>Cancelar</AlertDialogCancel>
                             <AlertDialogAction
-                              onClick={() => handleDelete(article.id)}
+                              onClick={() => handleDelete(item.ean)}
                               disabled={isPending}
                               className="bg-destructive hover:bg-destructive/90"
                             >
@@ -148,7 +160,7 @@ export function ScansTable({ data }: { data: ScannedArticle[] }) {
                 ))
               ) : (
                 <TableRow>
-                  <TableCell colSpan={8} className="h-24 text-center">
+                  <TableCell colSpan={9} className="h-24 text-center">
                     No se encontraron escaneos.
                   </TableCell>
                 </TableRow>
