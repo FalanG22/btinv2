@@ -275,6 +275,7 @@ export async function addScansBatch(scans: z.infer<typeof scanBatchSchema>) {
     revalidatePath("/articles");
     revalidatePath("/dashboard");
     revalidatePath("/report");
+    revalidatePath("/sku-summary");
     return { success: `Se cargaron ${newScans.length} escaneos con éxito.` };
 }
 
@@ -294,6 +295,7 @@ export async function deleteScan(scanId: string) {
   revalidatePath("/serials");
   revalidatePath("/dashboard");
   revalidatePath("/report");
+  revalidatePath("/sku-summary");
   return { success: "Registro de escaneo eliminado con éxito." };
 }
 
@@ -337,6 +339,7 @@ export async function addSerialsBatch(serials: string[], zoneId: string, countNu
     revalidatePath("/serials");
     revalidatePath("/dashboard");
     revalidatePath("/report");
+    revalidatePath("/sku-summary");
     return { success: `Se cargaron ${newEntries.length} números de serie con éxito.` };
 }
 
@@ -438,4 +441,46 @@ export async function getCountsReport(): Promise<CountsReportItem[]> {
     }, {} as Record<string, CountsReportItem>);
 
     return Object.values(reportMap).sort((a, b) => a.ean.localeCompare(b.ean));
+}
+
+export type SkuSummaryItem = {
+    sku: string;
+    description: string;
+    count1: number;
+    count2: number;
+    count3: number;
+    total: number;
+};
+
+export async function getSkuSummary(): Promise<SkuSummaryItem[]> {
+    await delay(50);
+    const companyId = session.user.companyId;
+    const scans = getDbScannedArticles().filter(s => s.companyId === companyId);
+
+    const summaryMap = scans.reduce((acc, scan) => {
+        if (!scan.sku || scan.sku === 'N/A') {
+            return acc;
+        }
+        
+        if (!acc[scan.sku]) {
+            acc[scan.sku] = {
+                sku: scan.sku,
+                description: scan.description,
+                count1: 0,
+                count2: 0,
+                count3: 0,
+                total: 0,
+            };
+        }
+
+        const item = acc[scan.sku];
+        if (scan.countNumber === 1) item.count1++;
+        if (scan.countNumber === 2) item.count2++;
+        if (scan.countNumber === 3) item.count3++;
+        item.total++;
+
+        return acc;
+    }, {} as Record<string, SkuSummaryItem>);
+
+    return Object.values(summaryMap).sort((a, b) => a.sku.localeCompare(b.sku));
 }

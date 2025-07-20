@@ -8,7 +8,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { Truck, ScanLine, MapPin, List, Hash, LayoutDashboard, ListChecks, Users } from "lucide-react";
+import { Truck, ScanLine, MapPin, List, Hash, LayoutDashboard, ListChecks, Users, Package } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 // In a real app, you'd get this from a session hook
@@ -21,6 +21,7 @@ const navItems = [
   { href: "/zones", icon: MapPin, label: "Zonas", roles: ['admin', 'user'] },
   { href: "/articles", icon: List, label: "Artículos", roles: ['admin', 'user'] },
   { href: "/report", icon: ListChecks, label: "Informe de Conteos", roles: ['admin', 'user'] },
+  { href: "/sku-summary", icon: Package, label: "Resumen por SKU", roles: ['admin', 'user'] },
   { href: "/users", icon: Users, label: "Usuarios", roles: ['admin'] },
 ];
 
@@ -48,7 +49,7 @@ export default function Sidebar() {
                   href={item.href}
                   className={cn(
                     "flex h-9 w-9 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:text-foreground md:h-8 md:w-8",
-                    pathname === item.href && "bg-accent text-accent-foreground"
+                    pathname.startsWith(item.href) && item.href !== "/dashboard" ? "bg-accent text-accent-foreground" : pathname === item.href ? "bg-accent text-accent-foreground" : ""
                   )}
                 >
                   <item.icon className="h-5 w-5" />
