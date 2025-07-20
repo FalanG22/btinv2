@@ -334,24 +334,25 @@ export default function DashboardClient({ zones }: DashboardClientProps) {
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel>EAN / Barcode</FormLabel>
-                        <FormControl>
-                          <Input placeholder="e.g., 8412345678901" {...field} autoFocus />
-                        </FormControl>
+                        <div className="flex items-start gap-2">
+                           <FormControl>
+                            <Input placeholder="e.g., 8412345678901" {...field} autoFocus />
+                          </FormControl>
+                          <Button type="submit" disabled={isPending} size="icon" className="shrink-0">
+                            {isPending ? (
+                              <Loader2 className="h-5 w-5 animate-spin" />
+                            ) : (
+                              <ScanLine className="h-5 w-5" />
+                            )}
+                            <span className="sr-only">Add Code</span>
+                          </Button>
+                        </div>
                         <FormMessage />
                       </FormItem>
                     )}
                   />
                    <FormField control={form.control} name="zoneId" render={() => <FormItem />} />
                    <FormField control={form.control} name="countNumber" render={() => <FormItem />} />
-
-                  <Button type="submit" disabled={isPending} className="w-full">
-                    {isPending ? (
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    ) : (
-                      <ScanLine className="mr-2 h-4 w-4" />
-                    )}
-                    Add Code
-                  </Button>
                 </form>
               </Form>
             </CardContent>
@@ -420,5 +421,3 @@ export default function DashboardClient({ zones }: DashboardClientProps) {
     </>
   );
 }
-
-    
