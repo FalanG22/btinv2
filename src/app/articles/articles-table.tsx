@@ -7,7 +7,8 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Search } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { Search, Hash, ScanLine } from "lucide-react";
 
 const ITEMS_PER_PAGE = 10;
 
@@ -49,6 +50,10 @@ export function ArticlesTable({ data }: { data: Product[] }) {
     setCurrentPage(1); // Reset to first page on search
   };
   
+  const isEan = (code: string) => {
+    return code.startsWith('779') && code.length === 13;
+  }
+
   return (
     <>
       <Card>
@@ -75,6 +80,7 @@ export function ArticlesTable({ data }: { data: Product[] }) {
             <TableHeader>
               <TableRow>
                 <TableHead>Código (EAN/Serie)</TableHead>
+                <TableHead>Tipo</TableHead>
                 <TableHead>SKU</TableHead>
                 <TableHead>Descripción</TableHead>
               </TableRow>
@@ -84,13 +90,24 @@ export function ArticlesTable({ data }: { data: Product[] }) {
                 paginatedData.map((product) => (
                   <TableRow key={product.code}>
                     <TableCell className="font-medium">{product.code}</TableCell>
+                    <TableCell>
+                      {isEan(product.code) ? (
+                        <Badge variant="outline" className="gap-1 pl-2 pr-3">
+                            <ScanLine className="h-3 w-3" /> EAN
+                         </Badge>
+                      ) : (
+                        <Badge variant="outline" className="gap-1 pl-2 pr-3">
+                            <Hash className="h-3 w-3" /> Serie
+                        </Badge>
+                      )}
+                    </TableCell>
                     <TableCell>{product.sku}</TableCell>
                     <TableCell>{product.description}</TableCell>
                   </TableRow>
                 ))
               ) : (
                 <TableRow>
-                  <TableCell colSpan={3} className="h-24 text-center">
+                  <TableCell colSpan={4} className="h-24 text-center">
                      {searchTerm ? "No se encontraron artículos con ese criterio." : "No se encontraron artículos."}
                   </TableCell>
                 </TableRow>
