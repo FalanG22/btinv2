@@ -2,6 +2,7 @@
 import PageHeader from "@/components/page-header";
 import { getScannedArticles } from "@/lib/actions";
 import { ScansTable, type GroupedScan } from "./scans-table";
+import { ExportButton } from "@/components/export-button";
 
 export default async function ScansPage() {
     const articles = await getScannedArticles();
@@ -41,6 +42,7 @@ export default async function ScansPage() {
                 title="Historial de Escaneos"
                 description="Ver y gestionar todos los artículos que han sido escaneados."
             >
+               <ExportButton data={groupedScans} filename="historial-escaneos" />
             </PageHeader>
 
             <ScansTable data={groupedScans} />
