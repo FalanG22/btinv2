@@ -66,7 +66,7 @@ export default function SerialsClient({ zones }: { zones: Zone[] }) {
 
   useEffect(() => {
     if (selectedZone) form.setValue("zoneId", selectedZone.id);
-    if (selectedCount) form.setValue("countNumber", selectedCount);
+    if (selectedCount !== null) form.setValue("countNumber", selectedCount);
   }, [selectedZone, selectedCount, form]);
 
   const onSubmit = (values: z.infer<typeof scanSchema>) => {
@@ -77,7 +77,7 @@ export default function SerialsClient({ zones }: { zones: Zone[] }) {
             description: "Este número de serie ya ha sido escaneado en esta sesión.",
             variant: "destructive"
         });
-        form.reset({ ean: "", zoneId: selectedZone?.id, countNumber: selectedCount });
+        form.reset({ ean: "", zoneId: selectedZone?.id, countNumber: selectedCount ?? undefined });
         return;
     }
 
@@ -95,7 +95,7 @@ export default function SerialsClient({ zones }: { zones: Zone[] }) {
           title: "Serial Added",
           description: `Número de serie ${serial} preparado para cargar.`,
         });
-        form.reset({ ean: "", zoneId: selectedZone?.id, countNumber: selectedCount });
+        form.reset({ ean: "", zoneId: selectedZone?.id, countNumber: selectedCount ?? undefined });
     });
   };
 
@@ -155,7 +155,7 @@ export default function SerialsClient({ zones }: { zones: Zone[] }) {
   }, [step, selectedZone, selectedCount]);
 
   return (
-    <div className="grid flex-1 items-start gap-4">
+    <div className="grid flex-1 items-start gap-4 p-4 sm:px-6 lg:gap-8">
       <PageHeader title={currentTitle}>
         <div className="flex items-center gap-2">
           {step === 'scan' && (
@@ -241,9 +241,9 @@ export default function SerialsClient({ zones }: { zones: Zone[] }) {
 
           <Card>
             <CardHeader>
-              <CardTitle>Series Preparadas</CardTitle>
+              <CardTitle>Series Preparadas (Conteo {selectedCount})</CardTitle>
               <CardDescription>Números de serie esperando para ser cargados.</CardDescription>
-            </Header>
+            </CardHeader>
             <CardContent>
               <Table>
                 <TableHeader>
