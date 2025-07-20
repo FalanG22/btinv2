@@ -3,7 +3,6 @@
 
 import { useTransition, useState, useEffect } from "react";
 import { deleteScanByEan } from "@/lib/actions";
-import type { ScannedArticle } from "@/lib/data";
 import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
 
@@ -19,7 +18,7 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -28,12 +27,11 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { MoreHorizontal, Printer, Trash2, Hash, ScanLine } from "lucide-react";
-import { PrintLabel } from "./print-label";
+import { MoreHorizontal, Trash2, Hash, ScanLine } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 
 export type GroupedScan = {
-  key: string; // Unique key for the row
+  key: string; 
   ean: string;
   sku: string;
   description: string;
@@ -44,10 +42,27 @@ export type GroupedScan = {
   quantity: number;
 };
 
+const ITEMS_PER_PAGE = 10;
+
 export function ScansTable({ data }: { data: GroupedScan[] }) {
   const [isPending, startTransition] = useTransition();
   const { toast } = useToast();
   const [isClient, setIsClient] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const totalPages = Math.ceil(data.length / ITEMS_PER_PAGE);
+
+  const paginatedData = data.slice(
+    (currentPage - 1) * ITEMS_PER_PAGE,
+    currentPage * ITEMS_PER_PAGE
+  );
+
+  const handlePreviousPage = () => {
+    setCurrentPage((prev) => Math.max(prev - 1, 1));
+  };
+
+  const handleNextPage = () => {
+    setCurrentPage((prev) => Math.min(prev + 1, totalPages));
+  };
 
   useEffect(() => {
     setIsClient(true);
@@ -89,8 +104,8 @@ export function ScansTable({ data }: { data: GroupedScan[] }) {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {data.length > 0 ? (
-                data.map((item) => (
+              {paginatedData.length > 0 ? (
+                paginatedData.map((item) => (
                   <TableRow key={item.key}>
                     <TableCell className="font-medium">{item.ean}</TableCell>
                     <TableCell>{item.sku}</TableCell>
@@ -169,6 +184,31 @@ export function ScansTable({ data }: { data: GroupedScan[] }) {
             </TableBody>
           </Table>
         </CardContent>
+         {totalPages > 1 && (
+            <CardFooter className="flex items-center justify-between pt-6">
+                <div className="text-xs text-muted-foreground">
+                    Página {currentPage} de {totalPages}
+                </div>
+                <div className="flex items-center gap-2">
+                    <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handlePreviousPage}
+                    disabled={currentPage === 1}
+                    >
+                    Anterior
+                    </Button>
+                    <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handleNextPage}
+                    disabled={currentPage === totalPages}
+                    >
+                    Siguiente
+                    </Button>
+                </div>
+            </CardFooter>
+        )}
       </Card>
     </>
   );

@@ -2,14 +2,11 @@
 import PageHeader from "@/components/page-header";
 import { getScannedArticles } from "@/lib/actions";
 import { ScansTable, type GroupedScan } from "./scans-table";
-import { DeleteAllButton } from "./delete-all-button";
 
 export default async function ScansPage() {
     const articles = await getScannedArticles();
 
     const groupedScans = articles.reduce((acc, article) => {
-        // For serials, the key is the unique serial number (stored in ean field)
-        // For EANs, the key must be a composite to be unique for grouping
         const key = article.isSerial 
             ? article.ean 
             : `${article.ean}-${article.zoneId}-${article.countNumber}`;
@@ -18,13 +15,12 @@ export default async function ScansPage() {
 
         if (existing) {
             existing.quantity++;
-            // Update to the latest scan time if this one is newer
             if (new Date(article.scannedAt) > new Date(existing.lastScannedAt)) {
                 existing.lastScannedAt = article.scannedAt;
             }
         } else {
             acc.push({
-                key: key, // Use the composite key here
+                key: key,
                 ean: article.ean,
                 sku: article.sku,
                 description: article.description,
@@ -45,7 +41,6 @@ export default async function ScansPage() {
                 title="Historial de Escaneos"
                 description="Ver y gestionar todos los artículos que han sido escaneados."
             >
-                <DeleteAllButton disabled={articles.length === 0} />
             </PageHeader>
 
             <ScansTable data={groupedScans} />
