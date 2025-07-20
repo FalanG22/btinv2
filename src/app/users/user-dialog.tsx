@@ -94,13 +94,15 @@ export function UserDialog({ user, children, companies }: UserDialogProps) {
       } else {
         toast({ title: "Success", description: result.success });
         setOpen(false);
-        form.reset({
-          name: "",
-          email: "",
-          password: "",
-          companyId: companies[0]?.id || "",
-          role: "user"
-        });
+        if (!isEditMode) {
+            form.reset({
+                name: "",
+                email: "",
+                password: "",
+                companyId: companies[0]?.id || "",
+                role: "user"
+            });
+        }
       }
     });
   };
@@ -171,12 +173,12 @@ export function UserDialog({ user, children, companies }: UserDialogProps) {
                                     className="absolute right-1 top-1/2 h-7 w-7 -translate-y-1/2 text-muted-foreground"
                                     onClick={() => setShowPassword(!showPassword)}
                                 >
-                                    {showPassword ? <EyeOff /> : <Eye />}
+                                    {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                                 </Button>
                                </div>
                             </FormControl>
-                             <Button type="button" variant="outline" onClick={generatePassword} className="shrink-0">
-                                <Sparkles className="mr-2" />
+                             <Button type="button" variant="outline" onClick={generatePassword} className="shrink-0 gap-1.5">
+                                <Sparkles className="h-4 w-4" />
                                 Generate
                             </Button>
                         </div>
