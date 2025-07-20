@@ -19,7 +19,7 @@ export async function middleware(request: NextRequest) {
   const isProtectedRoute = protectedRoutes.some(prefix => path.startsWith(prefix));
 
   if (isProtectedRoute) {
-    const session = await getSession();
+    const session = await getSession(request);
     if (!session) {
       return NextResponse.redirect(new URL('/login', request.nextUrl));
     }
@@ -27,7 +27,7 @@ export async function middleware(request: NextRequest) {
 
   // Redirect authenticated users from login page to dashboard
   if (publicRoutes.includes(path)) {
-     const session = await getSession();
+     const session = await getSession(request);
       if (session) {
         return NextResponse.redirect(new URL('/dashboard', request.nextUrl));
       }

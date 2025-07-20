@@ -1,8 +1,11 @@
+'use server';
+
 import 'server-only';
 import { SignJWT, jwtVerify } from 'jose';
 import { cookies } from 'next/headers';
 import { getDbUsers, User } from './data';
 import { redirect } from 'next/navigation';
+import type { NextRequest } from 'next/server';
 
 const secretKey = process.env.SESSION_SECRET || 'fallback-secret-for-development';
 const key = new TextEncoder().encode(secretKey);
@@ -47,8 +50,14 @@ export async function deleteSession() {
   cookies().set(SESSION_COOKIE_NAME, '', { expires: new Date(0) });
 }
 
-export async function getSession() {
-    const cookie = cookies().get(SESSION_COOKIE_NAME)?.value;
+export async function getSession(request?: NextRequest) {
+    let cookie;
+    if (request) {
+        cookie = request.cookies.get(SESSION_COOKIE_NAME)?.value;
+    } else {
+        cookie = cookies().get(SESSION_COOKIE_NAME)?.value;
+    }
+    
     if (!cookie) return null;
     return await decrypt(cookie);
 }
