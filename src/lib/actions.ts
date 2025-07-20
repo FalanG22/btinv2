@@ -3,7 +3,7 @@
 
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
-import { getDbScannedArticles, getDbZones, setDbScannedArticles, setDbZones, type ScannedArticle, type Zone, getDbProducts, getDbUsers, getDbCompanies, setDbUsers, type User, type Company, type Product } from "./data";
+import { getDbScannedArticles, getDbZones, setDbScannedArticles, setDbZones, type ScannedArticle, type Zone, getDbProducts, getDbUsers, getDbCompanies, setDbUsers, type User, type Company, type Product, setDbProducts } from "./data";
 import { scanSchema, zoneSchema, scanBatchSchema, serialBatchSchema, zoneBuilderSchema, userSchema } from "./schemas";
 import { getCurrentUser } from "./session";
 import { redirect } from "next/navigation";
@@ -271,6 +271,21 @@ export async function validateEan(ean: string): Promise<{ exists: boolean }> {
   const products = getDbProducts();
   const exists = products.some(p => p.code === ean);
   return { exists };
+}
+
+export async function deleteAllProducts() {
+    const session = await getCurrentUser();
+    if (!session) {
+        return { error: "No autorizado." };
+    }
+    // In a real app, this should probably be restricted to admin roles
+    // and might have more complex logic, like checking companyId.
+    // For the demo, we'll allow it and clear the entire list.
+    setDbProducts([]);
+    revalidatePath("/articles");
+    revalidatePath("/ean");
+    revalidatePath("/serials");
+    return { success: "Todos los artículos del maestro han sido eliminados." };
 }
 
 

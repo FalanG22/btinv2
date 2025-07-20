@@ -2,7 +2,6 @@
 import PageHeader from "@/components/page-header";
 import { getScannedArticles } from "@/lib/actions";
 import { ScansTable } from "./scans-table";
-import { DeleteAllButton } from "./delete-all-button";
 
 export default async function ScansPage() {
     const articles = await getScannedArticles();
@@ -13,7 +12,6 @@ export default async function ScansPage() {
                 title="Historial de Escaneos"
                 description="Ver y gestionar todos los artículos que han sido escaneados."
             >
-                <DeleteAllButton disabled={articles.length === 0} />
             </PageHeader>
 
             <ScansTable data={articles} />

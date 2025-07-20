@@ -59,7 +59,7 @@ let users: User[] = [
 ];
 
 // Master Product List
-const dbProducts: Product[] = [
+let dbProducts: Product[] = [
   { code: '8412345678901', sku: 'SKU-001', description: 'Caja de Tornillos 5mm' },
   { code: '8412345678902', sku: 'SKU-002', description: 'Paquete de Pilas AA' },
   { code: 'SN-ABC-001', sku: 'SKU-LAP-01', description: 'Laptop Modelo X' },
@@ -101,4 +101,7 @@ export const setDbZones = (newZones: Zone[]) => {
 };
 export const setDbScannedArticles = (newArticles: ScannedArticle[]) => {
   scannedArticles = newArticles;
+};
+export const setDbProducts = (newProducts: Product[]) => {
+  dbProducts = newProducts;
 };
