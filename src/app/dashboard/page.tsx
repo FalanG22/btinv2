@@ -30,15 +30,15 @@ export default function DashboardPage() {
 
   const chartConfig = {
     count1: {
-      label: "Count 1",
+      label: "Conteo 1",
       color: "hsl(var(--primary))",
     },
     count2: {
-      label: "Count 2",
+      label: "Conteo 2",
       color: "hsl(var(--accent))",
     },
     count3: {
-      label: "Count 3",
+      label: "Conteo 3",
       color: "hsl(var(--secondary))",
     },
   } satisfies ChartConfig;
@@ -47,11 +47,11 @@ export default function DashboardPage() {
     return (
         <div className="flex flex-1 flex-col gap-4 p-4 md:gap-8 md:p-8">
              <PageHeader
-                title="Dashboard"
-                description="An overview of your scanning activity."
+                title="Panel de Control"
+                description="Un resumen de tu actividad de escaneo."
             />
             <div className="grid place-items-center h-96">
-                <p>Loading stats...</p>
+                <p>Cargando estadísticas...</p>
             </div>
         </div>
     )
@@ -60,13 +60,13 @@ export default function DashboardPage() {
   return (
     <div className="flex flex-1 flex-col gap-4 p-4 md:gap-8 md:p-8">
       <PageHeader
-        title="Dashboard"
-        description="An overview of your scanning activity."
+        title="Panel de Control"
+        description="Un resumen de tu actividad de escaneo."
       />
       <div className="grid gap-4 md:grid-cols-2 md:gap-8 lg:grid-cols-4">
         <Card className="bg-gradient-to-tr from-blue-500 to-blue-700 text-white">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">EAN Scans Today</CardTitle>
+            <CardTitle className="text-sm font-medium">Escaneos EAN (Hoy)</CardTitle>
             <ScanLine className="h-4 w-4 text-blue-100" />
           </CardHeader>
           <CardContent>
@@ -75,7 +75,7 @@ export default function DashboardPage() {
         </Card>
         <Card className="bg-gradient-to-tr from-green-500 to-green-700 text-white">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Series Scans Today</CardTitle>
+            <CardTitle className="text-sm font-medium">Escaneos Series (Hoy)</CardTitle>
             <Hash className="h-4 w-4 text-green-100" />
           </CardHeader>
           <CardContent>
@@ -84,7 +84,7 @@ export default function DashboardPage() {
         </Card>
         <Card className="bg-gradient-to-tr from-orange-500 to-orange-700 text-white">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Active Zones</CardTitle>
+            <CardTitle className="text-sm font-medium">Zonas Activas</CardTitle>
             <MapPin className="h-4 w-4 text-orange-100" />
           </CardHeader>
           <CardContent>
@@ -93,7 +93,7 @@ export default function DashboardPage() {
         </Card>
         <Card className="bg-gradient-to-tr from-purple-500 to-purple-700 text-white">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Scanned Items</CardTitle>
+            <CardTitle className="text-sm font-medium">Total de Escaneos</CardTitle>
             <List className="h-4 w-4 text-purple-100" />
           </CardHeader>
           <CardContent>
@@ -104,8 +104,8 @@ export default function DashboardPage() {
       <div className="grid gap-4 md:gap-8 lg:grid-cols-1">
         <Card>
           <CardHeader>
-            <CardTitle>Scans by Zone and Count</CardTitle>
-             <CardDescription>Comparison of scanned units for each count within the zones.</CardDescription>
+            <CardTitle>Escaneos por Zona y Conteo</CardTitle>
+             <CardDescription>Comparación de unidades escaneadas para cada conteo dentro de las zonas.</CardDescription>
           </CardHeader>
           <CardContent className="pl-2">
             <ChartContainer config={chartConfig} className="h-[350px] w-full">

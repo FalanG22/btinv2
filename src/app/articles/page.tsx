@@ -9,8 +9,8 @@ export default async function ArticlesPage() {
     return (
         <div className="grid flex-1 items-start gap-4 p-4 sm:px-6 lg:gap-8">
             <PageHeader
-                title="Article Management"
-                description="View and manage all scanned articles."
+                title="Gestión de Artículos"
+                description="Ver y gestionar todos los artículos escaneados."
             >
                 <CsvUpload />
             </PageHeader>

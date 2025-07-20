@@ -9,8 +9,8 @@ export default async function ReportPage() {
     return (
         <div className="grid flex-1 items-start gap-4 p-4 sm:px-6 lg:gap-8">
             <PageHeader
-                title="Counts Report"
-                description="Summary of users who performed each count for every article and zone."
+                title="Informe de Conteos"
+                description="Resumen de usuarios que realizaron cada conteo para cada artículo y zona."
             />
             <CountsReportTable data={reportData} />
         </div>

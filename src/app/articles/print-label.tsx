@@ -15,7 +15,7 @@ export function PrintLabel({ article, children }: PrintLabelProps) {
   const handlePrint = () => {
     const printWindow = window.open('', '', 'height=400,width=600');
     if (printWindow && labelRef.current) {
-        printWindow.document.write('<html><head><title>Print Label</title>');
+        printWindow.document.write('<html><head><title>Imprimir Etiqueta</title>');
         printWindow.document.write('<style> body { font-family: sans-serif; margin: 20px; } .label { border: 2px solid black; padding: 15px; } h3 { margin: 0 0 10px; } p { margin: 4px 0; } .ean { font-family: monospace; font-size: 1.2em; text-align: center; padding: 10px; border-top: 1px solid #ccc; margin-top: 10px; } </style>');
         printWindow.document.write('</head><body>');
         printWindow.document.write(labelRef.current.innerHTML);
@@ -32,11 +32,11 @@ export function PrintLabel({ article, children }: PrintLabelProps) {
       <div onClick={handlePrint}>{children}</div>
       <div className="hidden">
         <div ref={labelRef} className="label">
-          <h3>Product Label</h3>
-          <p><strong>Zone:</strong> {article.zoneName}</p>
-          <p><strong>Count:</strong> {article.countNumber}</p>
-          <p><strong>Scanned at:</strong> {format(new Date(article.scannedAt), "dd/MM/yyyy HH:mm")}</p>
-          <p><strong>User:</strong> {article.userId}</p>
+          <h3>Etiqueta de Producto</h3>
+          <p><strong>Zona:</strong> {article.zoneName}</p>
+          <p><strong>Conteo:</strong> {article.countNumber}</p>
+          <p><strong>Escaneado:</strong> {format(new Date(article.scannedAt), "dd/MM/yyyy HH:mm")}</p>
+          <p><strong>Usuario:</strong> {article.userId}</p>
           <div className="ean">{article.ean}</div>
         </div>
       </div>

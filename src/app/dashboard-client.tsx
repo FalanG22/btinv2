@@ -134,8 +134,8 @@ export default function DashboardClient({ zones }: DashboardClientProps) {
         }
 
         toast({
-          title: "Scan Added",
-          description: `EAN ${values.ean} staged for upload.`,
+          title: "Escaneo añadido",
+          description: `EAN ${values.ean} preparado para la carga.`,
         });
         form.reset({ ean: "", zoneId: selectedZone?.id, countNumber: selectedCount });
     });
@@ -152,14 +152,14 @@ export default function DashboardClient({ zones }: DashboardClientProps) {
 
   const handleFinalize = () => {
     if (stagedScans.length === 0) {
-        toast({ title: "No scans", description: "There are no scans to upload.", variant: "destructive" });
+        toast({ title: "Sin escaneos", description: "No hay escaneos para cargar.", variant: "destructive" });
         return;
     }
 
     if (isClient && !navigator.onLine) {
         toast({
-            title: "You are offline",
-            description: "Scans are saved. They will be uploaded when you're back online.",
+            title: "Estás desconectado",
+            description: "Los escaneos se han guardado. Se cargarán cuando vuelvas a tener conexión.",
             variant: "destructive"
         });
         resetFlow();
@@ -172,7 +172,7 @@ export default function DashboardClient({ zones }: DashboardClientProps) {
             toast({ title: "Error", description: result.error, variant: "destructive" });
         } else {
             setSubmissionDetails({
-                zoneName: selectedZone?.name || 'Unknown',
+                zoneName: selectedZone?.name || 'Desconocida',
                 countNumber: selectedCount || 0,
                 quantity: stagedScans.length,
             });
@@ -192,8 +192,8 @@ export default function DashboardClient({ zones }: DashboardClientProps) {
         localStorage.setItem(key, JSON.stringify(updatedScans));
     }
     toast({
-        title: "Scan Removed",
-        description: "The scan has been removed from the queue.",
+        title: "Escaneo eliminado",
+        description: "El escaneo ha sido eliminado de la cola.",
     });
   };
   
@@ -203,8 +203,8 @@ export default function DashboardClient({ zones }: DashboardClientProps) {
           localStorage.removeItem(key);
       }
       toast({
-          title: "Queue Cleared",
-          description: "All staged scans for this session have been deleted.",
+          title: "Cola vaciada",
+          description: "Todos los escaneos preparados para esta sesión han sido eliminados.",
       });
       resetFlow();
   };
@@ -237,10 +237,10 @@ export default function DashboardClient({ zones }: DashboardClientProps) {
   const zoneOptions = zones.map(zone => ({ label: zone.name, value: zone.id }));
 
   const currentTitle = useMemo(() => {
-    if (step === 'zone') return 'Scan EAN: Select Zone';
-    if (step === 'count') return `EAN - Zone: ${selectedZone?.name}`;
-    if (step === 'scan') return `EAN - Zone: ${selectedZone?.name} - Count ${selectedCount}`;
-    return 'Scan';
+    if (step === 'zone') return 'Escaneo EAN: Seleccionar Zona';
+    if (step === 'count') return `EAN - Zona: ${selectedZone?.name}`;
+    if (step === 'scan') return `EAN - Zona: ${selectedZone?.name} - Conteo ${selectedCount}`;
+    return 'Escanear';
   }, [step, selectedZone, selectedCount]);
 
   return (
@@ -252,26 +252,26 @@ export default function DashboardClient({ zones }: DashboardClientProps) {
                 <>
                     <Button onClick={handleFinalize} disabled={isFinalizing || stagedScans.length === 0}>
                         {isFinalizing ? <Loader2 className="mr-2 animate-spin" /> : <UploadCloud className="mr-2" />}
-                        Finalize & Upload ({stagedScans.length})
+                        Finalizar y Subir ({stagedScans.length})
                     </Button>
                      <AlertDialog>
                         <AlertDialogTrigger asChild>
                            <Button variant="destructive" size="icon" disabled={stagedScans.length === 0}>
                                 <Trash className="h-4 w-4" />
-                                <span className="sr-only">Delete All</span>
+                                <span className="sr-only">Eliminar Todo</span>
                             </Button>
                         </AlertDialogTrigger>
                         <AlertDialogContent>
                             <AlertDialogHeader>
-                                <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+                                <AlertDialogTitle>¿Estás absolutamente seguro?</AlertDialogTitle>
                                 <AlertDialogDescription>
-                                    This action cannot be undone. This will permanently delete all {stagedScans.length} staged scans for this session.
+                                    Esta acción no se puede deshacer. Se eliminarán permanentemente los {stagedScans.length} escaneos preparados para esta sesión.
                                 </AlertDialogDescription>
                             </AlertDialogHeader>
                             <AlertDialogFooter>
-                                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                <AlertDialogCancel>Cancelar</AlertDialogCancel>
                                 <AlertDialogAction onClick={handleDeleteAllStagedScans} className="bg-destructive hover:bg-destructive/90">
-                                    Delete All
+                                    Eliminar Todo
                                 </AlertDialogAction>
                             </AlertDialogFooter>
                         </AlertDialogContent>
@@ -279,7 +279,7 @@ export default function DashboardClient({ zones }: DashboardClientProps) {
                 </>
             )}
             {step !== 'zone' && (
-               <Button variant="outline" size="sm" onClick={handleBack}><ArrowLeft className="mr-2 h-4 w-4" />Back</Button>
+               <Button variant="outline" size="sm" onClick={handleBack}><ArrowLeft className="mr-2 h-4 w-4" />Volver</Button>
             )}
         </div>
       </PageHeader>
@@ -287,16 +287,16 @@ export default function DashboardClient({ zones }: DashboardClientProps) {
       {step === 'zone' && (
         <Card>
           <CardHeader>
-            <CardTitle>Select Scanning Zone</CardTitle>
-            <CardDescription>Choose the zone where you will be scanning articles.</CardDescription>
+            <CardTitle>Seleccionar Zona de Escaneo</CardTitle>
+            <CardDescription>Elige la zona donde escanearás los artículos.</CardDescription>
           </CardHeader>
           <CardContent>
              <Combobox
                 options={zoneOptions}
                 onChange={handleZoneSelect}
-                placeholder="Select a zone"
-                searchPlaceholder="Search zones..."
-                emptyText="No zones found."
+                placeholder="Selecciona una zona"
+                searchPlaceholder="Buscar zonas..."
+                emptyText="No se encontraron zonas."
               />
           </CardContent>
         </Card>
@@ -305,13 +305,13 @@ export default function DashboardClient({ zones }: DashboardClientProps) {
       {step === 'count' && (
         <Card>
           <CardHeader>
-            <CardTitle>Select Count Number</CardTitle>
-            <CardDescription>Choose the count number for this scanning session.</CardDescription>
+            <CardTitle>Seleccionar Número de Conteo</CardTitle>
+            <CardDescription>Elige el número de conteo para esta sesión de escaneo.</CardDescription>
           </CardHeader>
           <CardContent className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             {[1, 2, 3].map(num => (
               <Button key={num} onClick={() => handleCountSelect(num)} className="h-24 text-2xl">
-                Count {num}
+                Conteo {num}
               </Button>
             ))}
           </CardContent>
@@ -322,8 +322,8 @@ export default function DashboardClient({ zones }: DashboardClientProps) {
         <div className="grid auto-rows-max items-start gap-4 lg:grid-cols-2 lg:gap-8">
           <Card className="w-full">
             <CardHeader>
-              <CardTitle>Scan or Enter Article</CardTitle>
-              <CardDescription>Enter an EAN code to stage it for upload.</CardDescription>
+              <CardTitle>Escanear o Ingresar Artículo</CardTitle>
+              <CardDescription>Ingresa un código EAN para prepararlo para la carga.</CardDescription>
             </CardHeader>
             <CardContent>
               <Form {...form}>
@@ -333,10 +333,10 @@ export default function DashboardClient({ zones }: DashboardClientProps) {
                     name="ean"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>EAN / Barcode</FormLabel>
+                        <FormLabel>EAN / Código de Barras</FormLabel>
                         <div className="flex items-start gap-2">
                            <FormControl>
-                            <Input placeholder="e.g., 8412345678901" {...field} autoFocus />
+                            <Input placeholder="ej., 8412345678901" {...field} autoFocus />
                           </FormControl>
                           <Button type="submit" disabled={isPending} size="icon" className="shrink-0">
                             {isPending ? (
@@ -344,7 +344,7 @@ export default function DashboardClient({ zones }: DashboardClientProps) {
                             ) : (
                               <ScanLine className="h-5 w-5" />
                             )}
-                            <span className="sr-only">Add Code</span>
+                            <span className="sr-only">Añadir Código</span>
                           </Button>
                         </div>
                         <FormMessage />
@@ -360,16 +360,16 @@ export default function DashboardClient({ zones }: DashboardClientProps) {
 
           <Card>
             <CardHeader>
-              <CardTitle>Staged Scans (Count {selectedCount})</CardTitle>
-              <CardDescription>Articles waiting to be uploaded.</CardDescription>
+              <CardTitle>Escaneos Preparados (Conteo {selectedCount})</CardTitle>
+              <CardDescription>Artículos esperando para ser cargados.</CardDescription>
             </CardHeader>
             <CardContent>
               <Table>
                 <TableHeader>
                   <TableRow>
                     <TableHead>EAN</TableHead>
-                    <TableHead>Time</TableHead>
-                    <TableHead className="text-right">Action</TableHead>
+                    <TableHead>Hora</TableHead>
+                    <TableHead className="text-right">Acción</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -387,7 +387,7 @@ export default function DashboardClient({ zones }: DashboardClientProps) {
                     ))
                   ) : (
                     <TableRow>
-                      <TableCell colSpan={3} className="text-center h-24">No staged scans.</TableCell>
+                      <TableCell colSpan={3} className="text-center h-24">No hay escaneos preparados.</TableCell>
                     </TableRow>
                   )}
                 </TableBody>
@@ -401,20 +401,20 @@ export default function DashboardClient({ zones }: DashboardClientProps) {
     <AlertDialog open={!!submissionDetails} onOpenChange={(open) => !open && resetFlow()}>
         <AlertDialogContent>
             <AlertDialogHeader>
-            <AlertDialogTitle>Upload Successful</AlertDialogTitle>
+            <AlertDialogTitle>Carga Exitosa</AlertDialogTitle>
             <AlertDialogDescription asChild>
                 <div>
-                  The following data has been uploaded successfully:
+                  Los siguientes datos han sido cargados exitosamente:
                   <ul className="mt-2 list-disc list-inside">
-                      <li><strong>Zone:</strong> {submissionDetails?.zoneName}</li>
-                      <li><strong>Count:</strong> {submissionDetails?.countNumber}</li>
-                      <li><strong>Total Items:</strong> {submissionDetails?.quantity}</li>
+                      <li><strong>Zona:</strong> {submissionDetails?.zoneName}</li>
+                      <li><strong>Conteo:</strong> {submissionDetails?.countNumber}</li>
+                      <li><strong>Total de Artículos:</strong> {submissionDetails?.quantity}</li>
                   </ul>
                 </div>
             </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>
-                <AlertDialogAction onClick={resetFlow}>Accept</AlertDialogAction>
+                <AlertDialogAction onClick={resetFlow}>Aceptar</AlertDialogAction>
             </AlertDialogFooter>
         </AlertDialogContent>
     </AlertDialog>

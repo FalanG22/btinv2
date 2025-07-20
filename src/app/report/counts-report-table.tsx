@@ -1,5 +1,3 @@
-
-
 "use client";
 
 import type { CountsReportItem } from "@/lib/actions";
@@ -33,21 +31,21 @@ export function CountsReportTable({ data }: { data: CountsReportItem[] }) {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Counts Report</CardTitle>
-        <CardDescription>A list of all articles and who performed each count.</CardDescription>
+        <CardTitle>Informe de Conteos</CardTitle>
+        <CardDescription>Un listado de todos los artículos y quién realizó cada conteo.</CardDescription>
       </CardHeader>
       <CardContent>
         <div className="overflow-x-auto">
           <Table className="min-w-max">
             <TableHeader>
               <TableRow>
-                <TableHead className="w-[200px]">Article Code</TableHead>
+                <TableHead className="w-[200px]">Código de Artículo</TableHead>
                 <TableHead>SKU</TableHead>
-                <TableHead>Description</TableHead>
-                <TableHead>Count 1 (User / Zone)</TableHead>
-                <TableHead>Count 2 (User / Zone)</TableHead>
-                <TableHead>Count 3 (User / Zone)</TableHead>
-                <TableHead>Status</TableHead>
+                <TableHead>Descripción</TableHead>
+                <TableHead>Conteo 1 (Usuario / Zona)</TableHead>
+                <TableHead>Conteo 2 (Usuario / Zona)</TableHead>
+                <TableHead>Conteo 3 (Usuario / Zona)</TableHead>
+                <TableHead>Estado</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -70,7 +68,7 @@ export function CountsReportTable({ data }: { data: CountsReportItem[] }) {
                                 {needsThirdCount ? (
                                     <Badge variant="destructive" className="gap-1.5">
                                         <AlertTriangle className="h-3.5 w-3.5" />
-                                        Third Count Needed
+                                        Requiere 3er Conteo
                                     </Badge>
                                 ) : (
                                     <span className="text-sm text-muted-foreground">-</span>
@@ -82,7 +80,7 @@ export function CountsReportTable({ data }: { data: CountsReportItem[] }) {
               ) : (
                 <TableRow>
                   <TableCell colSpan={7} className="h-24 text-center">
-                    No report data available.
+                    No hay datos de informe disponibles.
                   </TableCell>
                 </TableRow>
               )}

@@ -1,4 +1,3 @@
-
 "use client";
 
 import Link from "next/link";
@@ -16,13 +15,13 @@ import { cn } from "@/lib/utils";
 const userRole = 'admin'; 
 
 const navItems = [
-  { href: "/dashboard", icon: LayoutDashboard, label: "Dashboard", roles: ['admin', 'user'] },
-  { href: "/ean", icon: ScanLine, label: "Scan EAN", roles: ['admin', 'user'] },
-  { href: "/serials", icon: Hash, label: "Scan Series", roles: ['admin', 'user'] },
-  { href: "/zones", icon: MapPin, label: "Zones", roles: ['admin', 'user'] },
-  { href: "/articles", icon: List, label: "Articles", roles: ['admin', 'user'] },
-  { href: "/report", icon: ListChecks, label: "Counts Report", roles: ['admin', 'user'] },
-  { href: "/users", icon: Users, label: "Users", roles: ['admin'] },
+  { href: "/dashboard", icon: LayoutDashboard, label: "Panel", roles: ['admin', 'user'] },
+  { href: "/ean", icon: ScanLine, label: "Escanear EAN", roles: ['admin', 'user'] },
+  { href: "/serials", icon: Hash, label: "Escanear Series", roles: ['admin', 'user'] },
+  { href: "/zones", icon: MapPin, label: "Zonas", roles: ['admin', 'user'] },
+  { href: "/articles", icon: List, label: "Artículos", roles: ['admin', 'user'] },
+  { href: "/report", icon: ListChecks, label: "Informe de Conteos", roles: ['admin', 'user'] },
+  { href: "/users", icon: Users, label: "Usuarios", roles: ['admin'] },
 ];
 
 export default function Sidebar() {

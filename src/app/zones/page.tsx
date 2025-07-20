@@ -10,8 +10,8 @@ export default async function ZonesPage() {
   return (
     <div className="grid flex-1 items-start gap-4 p-4 sm:px-6 lg:gap-8">
       <PageHeader
-        title="Zone Management"
-        description="Create and manage your logistical zones."
+        title="Gestión de Zonas"
+        description="Crea y gestiona tus zonas logísticas."
       >
         <ZoneBuilderDialog />
       </PageHeader>

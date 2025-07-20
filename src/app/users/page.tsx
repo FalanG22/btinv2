@@ -1,4 +1,3 @@
-
 import PageHeader from "@/components/page-header";
 import { getUsers, getCompanies } from "@/lib/actions";
 import { UserDialog } from "./user-dialog";
@@ -19,7 +18,7 @@ export default async function UsersPage() {
   if (session.user.role !== 'admin') {
     return (
       <div className="grid flex-1 items-start gap-4 p-4 sm:px-6 lg:gap-8">
-        <PageHeader title="Access Denied" description="You do not have permission to view this page." />
+        <PageHeader title="Acceso Denegado" description="No tienes permiso para ver esta página." />
       </div>
     )
   }
@@ -34,8 +33,8 @@ export default async function UsersPage() {
   return (
     <div className="grid flex-1 items-start gap-4 p-4 sm:px-6 lg:gap-8">
       <PageHeader
-        title="User Management"
-        description="Create and manage user accounts for your company."
+        title="Gestión de Usuarios"
+        description="Crear y gestionar cuentas de usuario para tu empresa."
       >
         <UserDialog companies={allCompanies} />
       </PageHeader>

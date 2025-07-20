@@ -59,7 +59,7 @@ export function ZoneDialog({ children, zone }: ZoneDialogProps) {
       if (result.error) {
         toast({ title: "Error", description: result.error, variant: "destructive" });
       } else {
-        toast({ title: "Success", description: result.success });
+        toast({ title: "Éxito", description: result.success });
         setOpen(false);
       }
     });
@@ -70,9 +70,9 @@ export function ZoneDialog({ children, zone }: ZoneDialogProps) {
       <DialogTrigger asChild>{children}</DialogTrigger>
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
-          <DialogTitle>Edit Zone</DialogTitle>
+          <DialogTitle>Editar Zona</DialogTitle>
           <DialogDescription>
-            Update the details of this zone.
+            Actualiza los detalles de esta zona.
           </DialogDescription>
         </DialogHeader>
         <Form {...form}>
@@ -82,9 +82,9 @@ export function ZoneDialog({ children, zone }: ZoneDialogProps) {
               name="name"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Name</FormLabel>
+                  <FormLabel>Nombre</FormLabel>
                   <FormControl>
-                    <Input placeholder="e.g., Warehouse B" {...field} />
+                    <Input placeholder="ej., Almacén B" {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -95,9 +95,9 @@ export function ZoneDialog({ children, zone }: ZoneDialogProps) {
               name="description"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Description</FormLabel>
+                  <FormLabel>Descripción</FormLabel>
                   <FormControl>
-                    <Textarea placeholder="A brief description of the zone." {...field} />
+                    <Textarea placeholder="Una breve descripción de la zona." {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -106,7 +106,7 @@ export function ZoneDialog({ children, zone }: ZoneDialogProps) {
             <DialogFooter>
                 <Button type="submit" disabled={isPending}>
                 {isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                Save Changes
+                Guardar Cambios
                 </Button>
             </DialogFooter>
           </form>

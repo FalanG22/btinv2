@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useTransition } from "react";
@@ -41,31 +40,31 @@ export function UsersTable({ data, companies }: { data: User[], companies: Compa
       if (result.error) {
         toast({ title: "Error", description: result.error, variant: "destructive" });
       } else {
-        toast({ title: "Success", description: result.success });
+        toast({ title: "Éxito", description: result.success });
       }
     });
   };
 
   const getCompanyName = (companyId: string) => {
-    return companies.find(c => c.id === companyId)?.name || "Unknown Company";
+    return companies.find(c => c.id === companyId)?.name || "Empresa Desconocida";
   }
 
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Users</CardTitle>
-        <CardDescription>A list of all user accounts in the system.</CardDescription>
+        <CardTitle>Usuarios</CardTitle>
+        <CardDescription>Un listado de todas las cuentas de usuario en el sistema.</CardDescription>
       </CardHeader>
       <CardContent>
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>Name</TableHead>
+              <TableHead>Nombre</TableHead>
               <TableHead>Email</TableHead>
-              <TableHead>Company</TableHead>
-              <TableHead>Role</TableHead>
+              <TableHead>Empresa</TableHead>
+              <TableHead>Rol</TableHead>
               <TableHead>
-                <span className="sr-only">Actions</span>
+                <span className="sr-only">Acciones</span>
               </TableHead>
             </TableRow>
           </TableHeader>
@@ -85,40 +84,40 @@ export function UsersTable({ data, companies }: { data: User[], companies: Compa
                         <DropdownMenuTrigger asChild>
                           <Button aria-haspopup="true" size="icon" variant="ghost">
                             <MoreHorizontal className="h-4 w-4" />
-                            <span className="sr-only">Toggle menu</span>
+                            <span className="sr-only">Menú</span>
                           </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
-                          <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                          <DropdownMenuLabel>Acciones</DropdownMenuLabel>
                           <UserDialog user={user} companies={companies}>
                              <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
                                 <Pencil className="mr-2 h-4 w-4" />
-                                Edit
+                                Editar
                             </DropdownMenuItem>
                           </UserDialog>
                           <AlertDialogTrigger asChild>
                             <DropdownMenuItem className="text-destructive">
                                 <Trash2 className="mr-2 h-4 w-4" />
-                                Delete
+                                Eliminar
                             </DropdownMenuItem>
                           </AlertDialogTrigger>
                         </DropdownMenuContent>
                       </DropdownMenu>
                       <AlertDialogContent>
                         <AlertDialogHeader>
-                          <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+                          <AlertDialogTitle>¿Estás absolutamente seguro?</AlertDialogTitle>
                           <AlertDialogDescription>
-                            This action cannot be undone. This will permanently delete the user account for "{user.name}".
+                            Esta acción no se puede deshacer. Esto eliminará permanentemente la cuenta de usuario de "{user.name}".
                           </AlertDialogDescription>
                         </AlertDialogHeader>
                         <AlertDialogFooter>
-                          <AlertDialogCancel>Cancel</AlertDialogCancel>
+                          <AlertDialogCancel>Cancelar</AlertDialogCancel>
                           <AlertDialogAction
                             onClick={() => handleDelete(user.id, user.name)}
                             disabled={isPending}
                             className="bg-destructive hover:bg-destructive/90"
                           >
-                            Delete
+                            Eliminar
                           </AlertDialogAction>
                         </AlertDialogFooter>
                       </AlertDialogContent>
@@ -129,7 +128,7 @@ export function UsersTable({ data, companies }: { data: User[], companies: Compa
             ) : (
               <TableRow>
                 <TableCell colSpan={5} className="h-24 text-center">
-                  No users found.
+                  No se encontraron usuarios.
                 </TableCell>
               </TableRow>
             )}

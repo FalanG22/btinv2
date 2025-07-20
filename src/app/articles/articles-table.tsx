@@ -46,7 +46,7 @@ export function ArticlesTable({ data }: { data: ScannedArticle[] }) {
       if (result.error) {
         toast({ title: "Error", description: result.error, variant: "destructive" });
       } else {
-        toast({ title: "Success", description: result.success });
+        toast({ title: "Éxito", description: result.success });
       }
     });
   };
@@ -55,22 +55,22 @@ export function ArticlesTable({ data }: { data: ScannedArticle[] }) {
     <>
       <Card>
         <CardHeader>
-          <CardTitle>Scanned Articles</CardTitle>
-          <CardDescription>A list of all article scan records.</CardDescription>
+          <CardTitle>Artículos Escaneados</CardTitle>
+          <CardDescription>Un listado de todos los registros de escaneo de artículos.</CardDescription>
         </CardHeader>
         <CardContent>
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Code (EAN/Serial)</TableHead>
+                <TableHead>Código (EAN/Serie)</TableHead>
                 <TableHead>SKU</TableHead>
-                <TableHead>Description</TableHead>
-                <TableHead>Type</TableHead>
-                <TableHead>Zone</TableHead>
-                <TableHead>Count</TableHead>
-                <TableHead className="hidden md:table-cell">Scanned At</TableHead>
+                <TableHead>Descripción</TableHead>
+                <TableHead>Tipo</TableHead>
+                <TableHead>Zona</TableHead>
+                <TableHead>Conteo</TableHead>
+                <TableHead className="hidden md:table-cell">Escaneado en</TableHead>
                 <TableHead>
-                  <span className="sr-only">Actions</span>
+                  <span className="sr-only">Acciones</span>
                 </TableHead>
               </TableRow>
             </TableHeader>
@@ -97,7 +97,7 @@ export function ArticlesTable({ data }: { data: ScannedArticle[] }) {
                         <Badge variant="secondary">C{article.countNumber}</Badge>
                     </TableCell>
                     <TableCell className="hidden md:table-cell">
-                      {isClient ? format(new Date(article.scannedAt), "MMMM d, yyyy 'at' HH:mm") : '...'}
+                      {isClient ? format(new Date(article.scannedAt), "d 'de' MMMM, yyyy 'a las' HH:mm") : '...'}
                     </TableCell>
                     <TableCell>
                       <AlertDialog>
@@ -105,40 +105,40 @@ export function ArticlesTable({ data }: { data: ScannedArticle[] }) {
                           <DropdownMenuTrigger asChild>
                             <Button aria-haspopup="true" size="icon" variant="ghost">
                               <MoreHorizontal className="h-4 w-4" />
-                              <span className="sr-only">Toggle menu</span>
+                              <span className="sr-only">Menú</span>
                             </Button>
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end">
-                            <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                            <DropdownMenuLabel>Acciones</DropdownMenuLabel>
                             <PrintLabel article={article}>
                                 <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
                                     <Printer className="mr-2 h-4 w-4" />
-                                    Print Label
+                                    Imprimir Etiqueta
                                 </DropdownMenuItem>
                             </PrintLabel>
                             <AlertDialogTrigger asChild>
                               <DropdownMenuItem className="text-destructive">
                                 <Trash2 className="mr-2 h-4 w-4" />
-                                Delete
+                                Eliminar
                               </DropdownMenuItem>
                             </AlertDialogTrigger>
                           </DropdownMenuContent>
                         </DropdownMenu>
                         <AlertDialogContent>
                           <AlertDialogHeader>
-                            <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+                            <AlertDialogTitle>¿Estás absolutamente seguro?</AlertDialogTitle>
                             <AlertDialogDescription>
-                              This action cannot be undone. This will permanently delete this scan record.
+                              Esta acción no se puede deshacer. Esto eliminará permanentemente este registro de escaneo.
                             </AlertDialogDescription>
                           </AlertDialogHeader>
                           <AlertDialogFooter>
-                            <AlertDialogCancel>Cancel</AlertDialogCancel>
+                            <AlertDialogCancel>Cancelar</AlertDialogCancel>
                             <AlertDialogAction
                               onClick={() => handleDelete(article.id)}
                               disabled={isPending}
                               className="bg-destructive hover:bg-destructive/90"
                             >
-                              Delete
+                              Eliminar
                             </AlertDialogAction>
                           </AlertDialogFooter>
                         </AlertDialogContent>
@@ -149,7 +149,7 @@ export function ArticlesTable({ data }: { data: ScannedArticle[] }) {
               ) : (
                 <TableRow>
                   <TableCell colSpan={8} className="h-24 text-center">
-                    No articles found.
+                    No se encontraron artículos.
                   </TableCell>
                 </TableRow>
               )}

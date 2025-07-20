@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useTransition, useState } from "react";
@@ -72,7 +71,7 @@ export function UserDialog({ user, children, companies }: UserDialogProps) {
       password += chars.charAt(Math.floor(Math.random() * chars.length));
     }
     form.setValue("password", password, { shouldValidate: true });
-    toast({ title: "Password Generated", description: "A new secure password has been generated." });
+    toast({ title: "Contraseña Generada", description: "Se ha generado una nueva contraseña segura." });
   };
 
 
@@ -81,7 +80,7 @@ export function UserDialog({ user, children, companies }: UserDialogProps) {
       // In a real app, you'd never submit an empty password for a new user.
       // This is simplified for the demo.
       if (!isEditMode && !values.password) {
-        toast({ title: "Error", description: "Password is required for new users.", variant: "destructive" });
+        toast({ title: "Error", description: "La contraseña es obligatoria para nuevos usuarios.", variant: "destructive" });
         return;
       }
 
@@ -92,7 +91,7 @@ export function UserDialog({ user, children, companies }: UserDialogProps) {
       if (result.error) {
         toast({ title: "Error", description: result.error, variant: "destructive" });
       } else {
-        toast({ title: "Success", description: result.success });
+        toast({ title: "Éxito", description: result.success });
         setOpen(false);
         if (!isEditMode) {
             form.reset({
@@ -113,15 +112,15 @@ export function UserDialog({ user, children, companies }: UserDialogProps) {
         {children || (
           <Button size="sm" className="gap-1">
             <UserPlus className="h-3.5 w-3.5" />
-            Add User
+            Añadir Usuario
           </Button>
         )}
       </DialogTrigger>
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
-          <DialogTitle>{isEditMode ? "Edit User" : "Create New User"}</DialogTitle>
+          <DialogTitle>{isEditMode ? "Editar Usuario" : "Crear Nuevo Usuario"}</DialogTitle>
           <DialogDescription>
-            {isEditMode ? "Update the details for this user." : "Fill in the details to create a new user."}
+            {isEditMode ? "Actualiza los detalles de este usuario." : "Completa los detalles para crear un nuevo usuario."}
           </DialogDescription>
         </DialogHeader>
         <Form {...form}>
@@ -131,7 +130,7 @@ export function UserDialog({ user, children, companies }: UserDialogProps) {
               name="name"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Full Name</FormLabel>
+                  <FormLabel>Nombre Completo</FormLabel>
                   <FormControl>
                     <Input placeholder="John Doe" {...field} />
                   </FormControl>
@@ -157,13 +156,13 @@ export function UserDialog({ user, children, companies }: UserDialogProps) {
                 name="password"
                 render={({ field }) => (
                     <FormItem>
-                        <FormLabel>Password</FormLabel>
+                        <FormLabel>Contraseña</FormLabel>
                         <div className="flex gap-2">
                             <FormControl>
                                <div className="relative w-full">
                                 <Input
                                     type={showPassword ? "text" : "password"}
-                                    placeholder={isEditMode ? "Leave blank to keep current" : "Enter a password"}
+                                    placeholder={isEditMode ? "Dejar en blanco para mantener" : "Introduce una contraseña"}
                                     {...field}
                                 />
                                 <Button
@@ -179,7 +178,7 @@ export function UserDialog({ user, children, companies }: UserDialogProps) {
                             </FormControl>
                              <Button type="button" variant="outline" onClick={generatePassword} className="shrink-0 gap-1.5">
                                 <Sparkles className="h-4 w-4" />
-                                Generate
+                                Generar
                             </Button>
                         </div>
                         <FormMessage />
@@ -191,11 +190,11 @@ export function UserDialog({ user, children, companies }: UserDialogProps) {
               name="companyId"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Company</FormLabel>
+                  <FormLabel>Empresa</FormLabel>
                   <Select onValueChange={field.onChange} defaultValue={field.value}>
                     <FormControl>
                       <SelectTrigger>
-                        <SelectValue placeholder="Select a company" />
+                        <SelectValue placeholder="Selecciona una empresa" />
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
@@ -215,16 +214,16 @@ export function UserDialog({ user, children, companies }: UserDialogProps) {
               name="role"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Role</FormLabel>
+                  <FormLabel>Rol</FormLabel>
                   <Select onValueChange={field.onChange} defaultValue={field.value}>
                     <FormControl>
                       <SelectTrigger>
-                        <SelectValue placeholder="Select a role" />
+                        <SelectValue placeholder="Selecciona un rol" />
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
                       <SelectItem value="admin">Admin</SelectItem>
-                      <SelectItem value="user">User</SelectItem>
+                      <SelectItem value="user">Usuario</SelectItem>
                     </SelectContent>
                   </Select>
                   <FormMessage />
@@ -234,7 +233,7 @@ export function UserDialog({ user, children, companies }: UserDialogProps) {
             <DialogFooter>
               <Button type="submit" disabled={isPending}>
                 {isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                {isEditMode ? "Save Changes" : "Create User"}
+                {isEditMode ? "Guardar Cambios" : "Crear Usuario"}
               </Button>
             </DialogFooter>
           </form>

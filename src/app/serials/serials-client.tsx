@@ -112,7 +112,7 @@ export default function SerialsClient({ zones }: { zones: Zone[] }) {
     if (stagedSerials.some(s => s.serial === serial)) {
         playErrorSound();
         toast({
-            title: "Serial Duplicado",
+            title: "Serie Duplicada",
             description: "Este número de serie ya ha sido escaneado en esta sesión.",
             variant: "destructive"
         });
@@ -131,7 +131,7 @@ export default function SerialsClient({ zones }: { zones: Zone[] }) {
         }
 
         toast({
-          title: "Serial Added",
+          title: "Serie Añadida",
           description: `Número de serie ${serial} preparado para cargar.`,
         });
         form.reset({ ean: "", zoneId: selectedZone?.id, countNumber: selectedCount ?? undefined });
@@ -149,14 +149,14 @@ export default function SerialsClient({ zones }: { zones: Zone[] }) {
 
   const handleFinalize = () => {
     if (!selectedZone || selectedCount === null || stagedSerials.length === 0) {
-        toast({ title: "No serials", description: "There are no serials to upload.", variant: "destructive" });
+        toast({ title: "Sin series", description: "No hay números de serie para cargar.", variant: "destructive" });
         return;
     }
     
     if (isClient && !navigator.onLine) {
         toast({
-            title: "You are offline",
-            description: "Scans are saved. They will be uploaded when you're back online.",
+            title: "Estás desconectado",
+            description: "Los escaneos se han guardado. Se cargarán cuando vuelvas a tener conexión.",
             variant: "destructive"
         });
         resetFlow();
@@ -170,7 +170,7 @@ export default function SerialsClient({ zones }: { zones: Zone[] }) {
             toast({ title: "Error", description: result.error, variant: "destructive" });
         } else {
             setSubmissionDetails({
-                zoneName: selectedZone?.name || 'Unknown',
+                zoneName: selectedZone?.name || 'Desconocida',
                 countNumber: selectedCount || 0,
                 quantity: stagedSerials.length,
             });
@@ -190,8 +190,8 @@ export default function SerialsClient({ zones }: { zones: Zone[] }) {
         localStorage.setItem(key, JSON.stringify(updatedSerials));
     }
     toast({
-        title: "Serial Removed",
-        description: "The serial number has been removed from the queue.",
+        title: "Serie Eliminada",
+        description: "El número de serie ha sido eliminado de la cola.",
     });
   };
   
@@ -201,8 +201,8 @@ export default function SerialsClient({ zones }: { zones: Zone[] }) {
           localStorage.removeItem(key);
       }
       toast({
-          title: "Queue Cleared",
-          description: "All staged serials for this session have been deleted.",
+          title: "Cola Vaciada",
+          description: "Todas las series preparadas para esta sesión han sido eliminadas.",
       });
       resetFlow();
   };
@@ -239,7 +239,7 @@ export default function SerialsClient({ zones }: { zones: Zone[] }) {
     if (step === 'zone') return 'Escaneo de Series: Seleccionar Zona';
     if (step === 'count') return `Series - Zona: ${selectedZone?.name}`;
     if (step === 'scan') return `Series - Zona: ${selectedZone?.name} - Conteo ${selectedCount}`;
-    return 'Scan';
+    return 'Escanear';
   }, [step, selectedZone, selectedCount]);
 
   return (
@@ -251,26 +251,26 @@ export default function SerialsClient({ zones }: { zones: Zone[] }) {
             <>
               <Button onClick={handleFinalize} disabled={isFinalizing || stagedSerials.length === 0}>
                   {isFinalizing ? <Loader2 className="mr-2 animate-spin" /> : <UploadCloud className="mr-2" />}
-                  Finalize & Upload ({stagedSerials.length})
+                  Finalizar y Subir ({stagedSerials.length})
               </Button>
                <AlertDialog>
                 <AlertDialogTrigger asChild>
                    <Button variant="destructive" size="icon" disabled={stagedSerials.length === 0}>
                         <Trash className="h-4 w-4" />
-                        <span className="sr-only">Delete All</span>
+                        <span className="sr-only">Eliminar Todo</span>
                     </Button>
                 </AlertDialogTrigger>
                 <AlertDialogContent>
                     <AlertDialogHeader>
-                        <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+                        <AlertDialogTitle>¿Estás absolutamente seguro?</AlertDialogTitle>
                         <AlertDialogDescription>
-                            This action cannot be undone. This will permanently delete all {stagedSerials.length} staged serials for this session.
+                            Esta acción no se puede deshacer. Se eliminarán permanentemente los {stagedSerials.length} números de serie preparados para esta sesión.
                         </AlertDialogDescription>
                     </AlertDialogHeader>
                     <AlertDialogFooter>
-                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                        <AlertDialogCancel>Cancelar</AlertDialogCancel>
                         <AlertDialogAction onClick={handleDeleteAllStagedSerials} className="bg-destructive hover:bg-destructive/90">
-                            Delete All
+                            Eliminar Todo
                         </AlertDialogAction>
                     </AlertDialogFooter>
                 </AlertDialogContent>
@@ -335,7 +335,7 @@ export default function SerialsClient({ zones }: { zones: Zone[] }) {
                         <FormLabel>Número de Serie</FormLabel>
                         <div className="flex items-start gap-2">
                            <FormControl>
-                            <Input placeholder="e.g., SN123456789" {...field} autoFocus />
+                            <Input placeholder="ej., SN123456789" {...field} autoFocus />
                           </FormControl>
                           <Button type="submit" disabled={isPending} size="icon" className="shrink-0">
                             {isPending ? (
@@ -368,7 +368,7 @@ export default function SerialsClient({ zones }: { zones: Zone[] }) {
                   <TableRow>
                     <TableHead>Número de Serie</TableHead>
                     <TableHead>Hora</TableHead>
-                    <TableHead className="text-right">Action</TableHead>
+                    <TableHead className="text-right">Acción</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -400,20 +400,20 @@ export default function SerialsClient({ zones }: { zones: Zone[] }) {
     <AlertDialog open={!!submissionDetails} onOpenChange={(open) => !open && resetFlow()}>
         <AlertDialogContent>
             <AlertDialogHeader>
-            <AlertDialogTitle>Upload Successful</AlertDialogTitle>
+            <AlertDialogTitle>Carga Exitosa</AlertDialogTitle>
             <AlertDialogDescription asChild>
                 <div>
-                  The following data has been uploaded successfully:
+                  Los siguientes datos han sido cargados exitosamente:
                   <ul className="mt-2 list-disc list-inside">
-                      <li><strong>Zone:</strong> {submissionDetails?.zoneName}</li>
-                      <li><strong>Count:</strong> {submissionDetails?.countNumber}</li>
-                      <li><strong>Total Serials:</strong> {submissionDetails?.quantity}</li>
+                      <li><strong>Zona:</strong> {submissionDetails?.zoneName}</li>
+                      <li><strong>Conteo:</strong> {submissionDetails?.countNumber}</li>
+                      <li><strong>Total de Series:</strong> {submissionDetails?.quantity}</li>
                   </ul>
                 </div>
             </AlertDialogDescription>
             </AlertDialogHeader>
              <AlertDialogFooter>
-                <AlertDialogAction onClick={resetFlow}>Accept</AlertDialogAction>
+                <AlertDialogAction onClick={resetFlow}>Aceptar</AlertDialogAction>
             </AlertDialogFooter>
         </AlertDialogContent>
     </AlertDialog>

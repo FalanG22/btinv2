@@ -1,4 +1,3 @@
-
 "use server";
 
 import { revalidatePath } from "next/cache";
@@ -28,25 +27,25 @@ export async function getUsers(): Promise<User[]> {
 
 export async function deleteUser(userId: string) {
     if (userId === 'user-admin' || userId === 'user-admin-bt') {
-        return { error: "Cannot delete the default admin user." };
+        return { error: "No se puede eliminar el usuario administrador por defecto." };
     }
     let users = getDbUsers();
     const userToDelete = users.find(u => u.id === userId);
 
     // Security check: ensure admin can only delete users from their own company
     if (userToDelete?.companyId !== session.user.companyId) {
-        return { error: "You do not have permission to delete this user." };
+        return { error: "No tienes permiso para eliminar este usuario." };
     }
 
     setDbUsers(users.filter(u => u.id !== userId));
     revalidatePath("/users");
-    return { success: "User deleted successfully." };
+    return { success: "Usuario eliminado con éxito." };
 }
 
 export async function createUser(data: z.infer<typeof userSchema>) {
     const validatedFields = userSchema.safeParse(data);
     if (!validatedFields.success) {
-        return { error: "Invalid data provided." };
+        return { error: "Datos proporcionados no válidos." };
     }
     const { name, email, companyId, role, password } = validatedFields.data;
 
@@ -58,7 +57,7 @@ export async function createUser(data: z.infer<typeof userSchema>) {
 
     let users = getDbUsers();
     if (users.some(u => u.email === email)) {
-        return { error: "A user with this email already exists." };
+        return { error: "Ya existe un usuario con este correo electrónico." };
     }
     const newUser: User = {
         id: `user-${Date.now()}`,
@@ -69,46 +68,46 @@ export async function createUser(data: z.infer<typeof userSchema>) {
         createdAt: new Date().toISOString(),
         // In a real app, you would hash the password here before saving
     };
-    console.log(`Creating user with password: ${password}`);
+    console.log(`Creando usuario con contraseña: ${password}`);
     setDbUsers([newUser, ...users]);
     revalidatePath("/users");
-    return { success: `User "${name}" created successfully.` };
+    return { success: `Usuario "${name}" creado con éxito.` };
 }
 
 export async function updateUser(data: z.infer<typeof userSchema>) {
     const validatedFields = userSchema.safeParse(data);
     if (!validatedFields.success || !validatedFields.data.id) {
-        return { error: "Invalid data provided." };
+        return { error: "Datos proporcionados no válidos." };
     }
     const { id, name, email, companyId, role, password } = validatedFields.data;
     let users = getDbUsers();
     const userIndex = users.findIndex(u => u.id === id);
 
     if (userIndex === -1) {
-        return { error: "User not found." };
+        return { error: "Usuario no encontrado." };
     }
 
     // Security check: ensure admin can only update users in their own company
     if (users[userIndex].companyId !== session.user.companyId) {
-         return { error: "You do not have permission to update this user." };
+         return { error: "No tienes permiso para actualizar este usuario." };
     }
 
     // Prevent changing email to one that already exists
     if (users.some(u => u.email === email && u.id !== id)) {
-        return { error: "Another user with this email already exists." };
+        return { error: "Ya existe otro usuario con este correo electrónico." };
     }
 
     users[userIndex] = { ...users[userIndex], name, email, companyId, role };
 
     if (password) {
-      console.log(`Updating password for user ${email} to: ${password}`);
+      console.log(`Actualizando contraseña para el usuario ${email} a: ${password}`);
       // In a real app, you would hash the new password here
     }
 
     setDbUsers(users);
 
     revalidatePath("/users");
-    return { success: `User "${name}" updated successfully.` };
+    return { success: `Usuario "${name}" actualizado con éxito.` };
 }
 
 // --- Company Actions ---
@@ -134,7 +133,7 @@ export async function addZonesBatch(data: z.infer<typeof zoneBuilderSchema>) {
     const validatedFields = zoneBuilderSchema.safeParse(data);
 
     if (!validatedFields.success) {
-        return { error: "Invalid data provided for zone builder." };
+        return { error: "Datos proporcionados no válidos para el constructor de zonas." };
     }
 
     const { streetPrefix, streetFrom, streetTo, rackPrefix, rackFrom, rackTo } = validatedFields.data;
@@ -152,7 +151,7 @@ export async function addZonesBatch(data: z.infer<typeof zoneBuilderSchema>) {
                  newZones.push({
                     id: `zone-${Date.now()}-${s}-${r}`,
                     name: zoneName,
-                    description: `Zone located at Street ${street}, Rack ${rack}`,
+                    description: `Zona ubicada en Calle ${street}, Estantería ${rack}`,
                     createdAt: new Date().toISOString(),
                     companyId: companyId,
                 });
@@ -161,7 +160,7 @@ export async function addZonesBatch(data: z.infer<typeof zoneBuilderSchema>) {
     }
     
     if (newZones.length === 0) {
-        return { error: "No new zones to create. They might already exist." };
+        return { error: "No hay nuevas zonas para crear. Puede que ya existan." };
     }
 
     setDbZones([...newZones, ...zones]);
@@ -169,7 +168,7 @@ export async function addZonesBatch(data: z.infer<typeof zoneBuilderSchema>) {
     revalidatePath("/ean"); 
     revalidatePath("/serials"); 
     revalidatePath("/dashboard");
-    return { success: `${newZones.length} zones created successfully.` };
+    return { success: `${newZones.length} zonas creadas con éxito.` };
 }
 
 
@@ -177,7 +176,7 @@ export async function updateZone(data: z.infer<typeof zoneSchema>) {
   const validatedFields = zoneSchema.safeParse(data);
 
   if (!validatedFields.success || !validatedFields.data.id) {
-    return { error: "Invalid data provided." };
+    return { error: "Datos proporcionados no válidos." };
   }
 
   const { id, name, description } = validatedFields.data;
@@ -185,12 +184,12 @@ export async function updateZone(data: z.infer<typeof zoneSchema>) {
   const zoneIndex = zones.findIndex(z => z.id === id);
 
   if (zoneIndex === -1) {
-    return { error: "Zone not found." };
+    return { error: "Zona no encontrada." };
   }
 
   // Security check: ensure user has permission for this zone's company
   if (zones[zoneIndex].companyId !== session.user.companyId) {
-      return { error: "You do not have permission to update this zone." };
+      return { error: "No tienes permiso para actualizar esta zona." };
   }
 
   zones[zoneIndex] = { ...zones[zoneIndex], name, description };
@@ -200,7 +199,7 @@ export async function updateZone(data: z.infer<typeof zoneSchema>) {
   revalidatePath("/ean");
   revalidatePath("/serials");
   revalidatePath("/dashboard");
-  return { success: `Zone "${name}" updated successfully.` };
+  return { success: `Zona "${name}" actualizada con éxito.` };
 }
 
 export async function deleteZone(zoneId: string) {
@@ -209,7 +208,7 @@ export async function deleteZone(zoneId: string) {
 
   // Security check
   if (!zone || zone.companyId !== session.user.companyId) {
-      return { error: "You do not have permission to delete this zone." };
+      return { error: "No tienes permiso para eliminar esta zona." };
   }
   
   const zoneName = zone.name;
@@ -219,7 +218,7 @@ export async function deleteZone(zoneId: string) {
   revalidatePath("/ean");
   revalidatePath("/serials");
   revalidatePath("/dashboard");
-  return { success: `Zone "${zoneName}" deleted successfully.` };
+  return { success: `Zona "${zoneName}" eliminada con éxito.` };
 }
 
 // --- Article Scan Actions ---
@@ -232,7 +231,7 @@ export async function getScannedArticles(): Promise<ScannedArticle[]> {
   return articles
     .map(article => ({
         ...article,
-        zoneName: zones.find(z => z.id === article.zoneId)?.name || 'Unknown Zone'
+        zoneName: zones.find(z => z.id === article.zoneId)?.name || 'Zona Desconocida'
     }))
     .sort((a, b) => new Date(b.scannedAt).getTime() - new Date(a.scannedAt).getTime());
 }
@@ -241,7 +240,7 @@ export async function addScansBatch(scans: z.infer<typeof scanBatchSchema>) {
     const validatedFields = scanBatchSchema.safeParse(scans);
 
     if (!validatedFields.success) {
-        return { error: "Invalid batch data provided." };
+        return { error: "Datos de lote no válidos." };
     }
     
     const companyId = session.user.companyId; 
@@ -262,7 +261,7 @@ export async function addScansBatch(scans: z.infer<typeof scanBatchSchema>) {
             sku: productInfo?.sku || 'N/A',
             description: productInfo?.description || 'Producto no encontrado',
             zoneId: scan.zoneId,
-            zoneName: zone?.name || 'Unknown Zone',
+            zoneName: zone?.name || 'Zona Desconocida',
             scannedAt: scan.scannedAt,
             userId: userId,
             countNumber: scan.countNumber,
@@ -276,7 +275,7 @@ export async function addScansBatch(scans: z.infer<typeof scanBatchSchema>) {
     revalidatePath("/articles");
     revalidatePath("/dashboard");
     revalidatePath("/report");
-    return { success: `Successfully uploaded ${newScans.length} scans.` };
+    return { success: `Se cargaron ${newScans.length} escaneos con éxito.` };
 }
 
 export async function deleteScan(scanId: string) {
@@ -285,7 +284,7 @@ export async function deleteScan(scanId: string) {
 
   // Security check
   if (!scan || scan.companyId !== session.user.companyId) {
-      return { error: "You do not have permission to delete this scan." };
+      return { error: "No tienes permiso para eliminar este escaneo." };
   }
 
   setDbScannedArticles(articles.filter(a => a.id !== scanId));
@@ -295,13 +294,13 @@ export async function deleteScan(scanId: string) {
   revalidatePath("/serials");
   revalidatePath("/dashboard");
   revalidatePath("/report");
-  return { success: "Scan record deleted successfully." };
+  return { success: "Registro de escaneo eliminado con éxito." };
 }
 
 export async function addSerialsBatch(serials: string[], zoneId: string, countNumber: number) {
     const validatedFields = serialBatchSchema.safeParse({ serials, zoneId, countNumber });
      if (!validatedFields.success) {
-        return { error: "Invalid serial batch data provided." };
+        return { error: "Datos de lote de series no válidos." };
     }
 
     const zones = getDbZones();
@@ -313,7 +312,7 @@ export async function addSerialsBatch(serials: string[], zoneId: string, countNu
     const userId = session.user.id;
 
     if (!zone || zone.companyId !== companyId) {
-        return { error: "Selected zone not found or you don't have permission." };
+        return { error: "Zona seleccionada no encontrada o no tienes permiso." };
     }
 
     const newEntries: ScannedArticle[] = serials.map((serial, index) => {
@@ -338,7 +337,7 @@ export async function addSerialsBatch(serials: string[], zoneId: string, countNu
     revalidatePath("/serials");
     revalidatePath("/dashboard");
     revalidatePath("/report");
-    return { success: `Successfully uploaded ${newEntries.length} serial numbers.` };
+    return { success: `Se cargaron ${newEntries.length} números de serie con éxito.` };
 }
 
 // --- Dashboard & Report Actions ---

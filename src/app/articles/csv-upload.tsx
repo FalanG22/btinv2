@@ -13,8 +13,8 @@ export function CsvUpload() {
     const file = event.target.files?.[0];
     if (file) {
       toast({
-        title: "File Selected",
-        description: `"${file.name}" is ready for upload. (This is a demo)`,
+        title: "Archivo Seleccionado",
+        description: `"${file.name}" está listo para la carga. (Esto es una demostración)`,
       });
     }
   };
@@ -34,7 +34,7 @@ export function CsvUpload() {
       />
       <Button size="sm" variant="outline" className="gap-1" onClick={handleClick}>
         <Upload className="h-3.5 w-3.5" />
-        Upload CSV
+        Subir CSV
       </Button>
     </>
   );

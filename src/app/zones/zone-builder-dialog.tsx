@@ -75,7 +75,7 @@ export function ZoneBuilderDialog() {
       if (result.error) {
         toast({ title: "Error", description: result.error, variant: "destructive" });
       } else {
-        toast({ title: "Success", description: result.success });
+        toast({ title: "Éxito", description: result.success });
         setOpen(false);
         form.reset();
       }
@@ -87,14 +87,14 @@ export function ZoneBuilderDialog() {
       <DialogTrigger asChild>
           <Button size="sm" className="gap-1">
             <PlusCircle className="h-3.5 w-3.5" />
-            Add Zones
+            Añadir Zonas
           </Button>
       </DialogTrigger>
       <DialogContent className="sm:max-w-[650px]">
         <DialogHeader>
-          <DialogTitle>Zone Builder</DialogTitle>
+          <DialogTitle>Constructor de Zonas</DialogTitle>
           <DialogDescription>
-            Quickly generate multiple zones based on a street and rack layout.
+            Genera rápidamente múltiples zonas basadas en un diseño de calles y estanterías.
           </DialogDescription>
         </DialogHeader>
         <Form {...form}>
@@ -106,9 +106,9 @@ export function ZoneBuilderDialog() {
                 name="streetPrefix"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Street Prefix</FormLabel>
+                    <FormLabel>Prefijo de Calle</FormLabel>
                     <FormControl>
-                      <Input placeholder="e.g., C" {...field} />
+                      <Input placeholder="ej., C" {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -120,7 +120,7 @@ export function ZoneBuilderDialog() {
                   name="streetFrom"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>From</FormLabel>
+                      <FormLabel>Desde</FormLabel>
                       <FormControl>
                         <Input type="number" {...field} onChange={e => field.onChange(parseInt(e.target.value, 10) || 0)} />
                       </FormControl>
@@ -133,7 +133,7 @@ export function ZoneBuilderDialog() {
                   name="streetTo"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>To</FormLabel>
+                      <FormLabel>Hasta</FormLabel>
                       <FormControl>
                         <Input type="number" {...field} onChange={e => field.onChange(parseInt(e.target.value, 10) || 0)} />
                       </FormControl>
@@ -147,9 +147,9 @@ export function ZoneBuilderDialog() {
                 name="rackPrefix"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Rack Prefix</FormLabel>
+                    <FormLabel>Prefijo de Estantería</FormLabel>
                     <FormControl>
-                      <Input placeholder="e.g., E or R" {...field} />
+                      <Input placeholder="ej., E o R" {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -161,7 +161,7 @@ export function ZoneBuilderDialog() {
                   name="rackFrom"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>From</FormLabel>
+                      <FormLabel>Desde</FormLabel>
                       <FormControl>
                         <Input type="number" {...field} onChange={e => field.onChange(parseInt(e.target.value, 10) || 0)} />
                       </FormControl>
@@ -174,7 +174,7 @@ export function ZoneBuilderDialog() {
                   name="rackTo"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>To</FormLabel>
+                      <FormLabel>Hasta</FormLabel>
                       <FormControl>
                         <Input type="number" {...field} onChange={e => field.onChange(parseInt(e.target.value, 10) || 0)} />
                       </FormControl>
@@ -186,7 +186,7 @@ export function ZoneBuilderDialog() {
             </div>
 
             <div className="col-span-1 space-y-2">
-                <FormLabel>Preview ({previewZones.length} zones)</FormLabel>
+                <FormLabel>Vista Previa ({previewZones.length} zonas)</FormLabel>
                 <ScrollArea className="h-64 w-full rounded-md border p-4">
                     {previewZones.length > 0 ? (
                          <div className="flex flex-wrap gap-2">
@@ -196,7 +196,7 @@ export function ZoneBuilderDialog() {
                         </div>
                     ) : (
                         <div className="flex items-center justify-center h-full">
-                            <p className="text-sm text-muted-foreground">Adjust ranges to see a preview.</p>
+                            <p className="text-sm text-muted-foreground">Ajusta los rangos para ver una vista previa.</p>
                         </div>
                     )}
                 </ScrollArea>
@@ -209,7 +209,7 @@ export function ZoneBuilderDialog() {
                 ) : (
                     <Wand2 className="mr-2 h-4 w-4" />
                 )}
-                Generate Zones
+                Generar Zonas
                 </Button>
             </DialogFooter>
           </form>
