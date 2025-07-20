@@ -1,3 +1,5 @@
+"use client"
+
 import {
   Card,
   CardContent,
@@ -13,9 +15,16 @@ import { Bar, BarChart, CartesianGrid, XAxis, YAxis } from "recharts";
 import PageHeader from "@/components/page-header";
 import { getDashboardStats } from "@/lib/actions";
 import { ScanLine, Hash, MapPin, List } from "lucide-react";
+import { useEffect, useState } from "react";
 
-export default async function DashboardPage() {
-  const stats = await getDashboardStats();
+type DashboardStats = Awaited<ReturnType<typeof getDashboardStats>>;
+
+export default function DashboardPage() {
+  const [stats, setStats] = useState<DashboardStats | null>(null);
+
+  useEffect(() => {
+    getDashboardStats().then(setStats);
+  }, []);
 
   const chartConfig = {
     total: {
@@ -23,6 +32,20 @@ export default async function DashboardPage() {
       color: "hsl(var(--primary))",
     },
   };
+
+  if (!stats) {
+    return (
+        <div className="flex flex-1 flex-col gap-4 p-4 md:gap-8 md:p-8">
+             <PageHeader
+                title="Dashboard"
+                description="An overview of your scanning activity."
+            />
+            <div className="grid place-items-center h-96">
+                <p>Loading stats...</p>
+            </div>
+        </div>
+    )
+  }
 
   return (
     <div className="flex flex-1 flex-col gap-4 p-4 md:gap-8 md:p-8">
