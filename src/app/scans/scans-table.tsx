@@ -33,6 +33,7 @@ import { PrintLabel } from "./print-label";
 import { Badge } from "@/components/ui/badge";
 
 export type GroupedScan = {
+  key: string; // Unique key for the row
   ean: string;
   sku: string;
   description: string;
@@ -90,7 +91,7 @@ export function ScansTable({ data }: { data: GroupedScan[] }) {
             <TableBody>
               {data.length > 0 ? (
                 data.map((item) => (
-                  <TableRow key={item.ean}>
+                  <TableRow key={item.key}>
                     <TableCell className="font-medium">{item.ean}</TableCell>
                     <TableCell>{item.sku}</TableCell>
                     <TableCell>{item.description}</TableCell>
@@ -138,7 +139,7 @@ export function ScansTable({ data }: { data: GroupedScan[] }) {
                         </DropdownMenu>
                         <AlertDialogContent>
                           <AlertDialogHeader>
-                            <AlertDialogTitle>¿Estás absolutamente seguro?</AlertDialogTitle>
+                            <AlertDialogTitle>¿Estás absolutely seguro?</AlertDialogTitle>
                             <AlertDialogDescription>
                               Esta acción no se puede deshacer. Esto eliminará permanentemente los {item.quantity} registros de escaneo para el código "{item.ean}".
                             </AlertDialogDescription>
