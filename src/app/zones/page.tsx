@@ -3,6 +3,7 @@ import { getZones } from "@/lib/actions";
 import PageHeader from "@/components/page-header";
 import { ZonesTable } from "./zones-table";
 import { ZoneBuilderDialog } from "./zone-builder-dialog";
+import { PrintZonesDialog } from "./print-zones-dialog";
 
 
 export default async function ZonesPage() {
@@ -14,7 +15,10 @@ export default async function ZonesPage() {
         title="Gestión de Zonas"
         description="Crea y gestiona tus zonas logísticas."
       >
-        <ZoneBuilderDialog />
+        <div className="flex items-center gap-2">
+            <ZoneBuilderDialog />
+            <PrintZonesDialog zones={zones} />
+        </div>
       </PageHeader>
       
       <ZonesTable data={zones} />

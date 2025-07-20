@@ -158,6 +158,25 @@ export async function getZones(): Promise<Zone[]> {
         .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
 }
 
+export async function getZonesForPrint(fromZoneId: string, toZoneId: string): Promise<Zone[]> {
+    const session = await getCurrentUser();
+    if (!session) return [];
+
+    const allZonesForCompany = getDbZones()
+        .filter(z => z.companyId === session.companyId)
+        .sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true }));
+    
+    const fromIndex = allZonesForCompany.findIndex(z => z.id === fromZoneId);
+    const toIndex = allZonesForCompany.findIndex(z => z.id === toZoneId);
+
+    if (fromIndex === -1 || toIndex === -1) {
+        return [];
+    }
+    
+    return allZonesForCompany.slice(fromIndex, toIndex + 1);
+}
+
+
 export async function addZonesBatch(data: z.infer<typeof zoneBuilderSchema>) {
     const session = await getCurrentUser();
     if (!session) return { error: "No autorizado." };
