@@ -10,7 +10,7 @@ const session = {
     user: {
       id: 'user-admin',
       role: 'admin',
-      companyId: 'company-1'
+      companyId: 'company-sc'
     }
 };
 
@@ -27,11 +27,8 @@ export default async function UsersPage() {
   // An admin will only see users from their own company.
   const users = await getUsers();
   
-  // To assign a user to a company, the admin needs the list of companies.
-  // In a super-admin scenario, this would be all companies.
-  // For a company-admin, we'll just pass their own company.
+  // To assign a user to a company, the admin needs the list of all companies.
   const allCompanies = await getCompanies();
-  const companiesForAdmin = allCompanies.filter(c => c.id === session.user.companyId);
 
 
   return (
@@ -40,10 +37,10 @@ export default async function UsersPage() {
         title="User Management"
         description="Create and manage user accounts for your company."
       >
-        <UserDialog companies={companiesForAdmin} />
+        <UserDialog companies={allCompanies} />
       </PageHeader>
 
-      <UsersTable data={users} companies={companiesForAdmin} />
+      <UsersTable data={users} companies={allCompanies} />
     </div>
   );
 }
