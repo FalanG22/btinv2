@@ -75,7 +75,7 @@ function PrintPageContent() {
 
     return (
         <main className="p-4 bg-white text-black">
-            <div className="grid grid-cols-2 gap-4">
+            <div className="printable-area grid grid-cols-2 gap-4">
                 {zonesToPrint.map(zone => (
                     <PrintableZone key={zone.id} zone={zone} qrCodeUrl={qrCodes[zone.id]} />
                 ))}
