@@ -1,3 +1,4 @@
+
 "use client";
 
 import Link from "next/link";
@@ -8,20 +9,26 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { Truck, ScanLine, MapPin, List, Hash, LayoutDashboard, ListChecks } from "lucide-react";
+import { Truck, ScanLine, MapPin, List, Hash, LayoutDashboard, ListChecks, Users } from "lucide-react";
 import { cn } from "@/lib/utils";
 
+// In a real app, you'd get this from a session hook
+const userRole = 'admin'; 
+
 const navItems = [
-  { href: "/dashboard", icon: LayoutDashboard, label: "Dashboard" },
-  { href: "/ean", icon: ScanLine, label: "Scan EAN" },
-  { href: "/serials", icon: Hash, label: "Scan Series" },
-  { href: "/zones", icon: MapPin, label: "Zones" },
-  { href: "/articles", icon: List, label: "Articles" },
-  { href: "/report", icon: ListChecks, label: "Counts Report" },
+  { href: "/dashboard", icon: LayoutDashboard, label: "Dashboard", roles: ['admin', 'user'] },
+  { href: "/ean", icon: ScanLine, label: "Scan EAN", roles: ['admin', 'user'] },
+  { href: "/serials", icon: Hash, label: "Scan Series", roles: ['admin', 'user'] },
+  { href: "/zones", icon: MapPin, label: "Zones", roles: ['admin', 'user'] },
+  { href: "/articles", icon: List, label: "Articles", roles: ['admin', 'user'] },
+  { href: "/report", icon: ListChecks, label: "Counts Report", roles: ['admin', 'user'] },
+  { href: "/users", icon: Users, label: "Users", roles: ['admin'] },
 ];
 
 export default function Sidebar() {
   const pathname = usePathname();
+
+  const accessibleNavItems = navItems.filter(item => item.roles.includes(userRole));
 
   return (
     <aside className="fixed inset-y-0 left-0 z-10 hidden w-14 flex-col border-r bg-background sm:flex">
@@ -35,7 +42,7 @@ export default function Sidebar() {
             <span className="sr-only">ZoneScan</span>
           </Link>
 
-          {navItems.map((item) => (
+          {accessibleNavItems.map((item) => (
             <Tooltip key={item.href}>
               <TooltipTrigger asChild>
                 <Link

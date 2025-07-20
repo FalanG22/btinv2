@@ -3,16 +3,88 @@
 
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
-import { getDbScannedArticles, getDbZones, setDbScannedArticles, setDbZones, type ScannedArticle, type Zone, getDbProducts } from "./data";
-import { scanSchema, zoneSchema, scanBatchSchema, serialBatchSchema, zoneBuilderSchema } from "./schemas";
+import { getDbScannedArticles, getDbZones, setDbScannedArticles, setDbZones, type ScannedArticle, type Zone, getDbProducts, getDbUsers, getDbCompanies, setDbUsers, type User, type Company } from "./data";
+import { scanSchema, zoneSchema, scanBatchSchema, serialBatchSchema, zoneBuilderSchema, userSchema } from "./schemas";
 
 // --- Helper Functions ---
 const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+
+// --- User Actions ---
+export async function getUsers(): Promise<User[]> {
+  await delay(50);
+  return getDbUsers();
+}
+
+export async function deleteUser(userId: string) {
+    if (userId === 'user-admin') {
+        return { error: "Cannot delete the default admin user." };
+    }
+    let users = getDbUsers();
+    setDbUsers(users.filter(u => u.id !== userId));
+    revalidatePath("/users");
+    return { success: "User deleted successfully." };
+}
+
+export async function createUser(data: z.infer<typeof userSchema>) {
+    const validatedFields = userSchema.safeParse(data);
+    if (!validatedFields.success) {
+        return { error: "Invalid data provided." };
+    }
+    const { name, email, companyId, role } = validatedFields.data;
+    let users = getDbUsers();
+    if (users.some(u => u.email === email)) {
+        return { error: "A user with this email already exists." };
+    }
+    const newUser: User = {
+        id: `user-${Date.now()}`,
+        name,
+        email,
+        companyId,
+        role,
+        createdAt: new Date().toISOString(),
+    };
+    setDbUsers([newUser, ...users]);
+    revalidatePath("/users");
+    return { success: `User "${name}" created successfully.` };
+}
+
+export async function updateUser(data: z.infer<typeof userSchema>) {
+    const validatedFields = userSchema.safeParse(data);
+    if (!validatedFields.success || !validatedFields.data.id) {
+        return { error: "Invalid data provided." };
+    }
+    const { id, name, email, companyId, role } = validatedFields.data;
+    let users = getDbUsers();
+    const userIndex = users.findIndex(u => u.id === id);
+
+    if (userIndex === -1) {
+        return { error: "User not found." };
+    }
+
+    // Prevent changing email to one that already exists
+    if (users.some(u => u.email === email && u.id !== id)) {
+        return { error: "Another user with this email already exists." };
+    }
+
+    users[userIndex] = { ...users[userIndex], name, email, companyId, role };
+    setDbUsers(users);
+
+    revalidatePath("/users");
+    return { success: `User "${name}" updated successfully.` };
+}
+
+// --- Company Actions ---
+export async function getCompanies(): Promise<Company[]> {
+    await delay(50);
+    return getDbCompanies();
+}
+
 
 // --- Zone Actions ---
 
 export async function getZones(): Promise<Zone[]> {
   await delay(50); // Simulate network latency
+  // In a real app, you would filter by companyId from the user's session
   return getDbZones().sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
 }
 
@@ -26,6 +98,7 @@ export async function addZonesBatch(data: z.infer<typeof zoneBuilderSchema>) {
     const { streetPrefix, streetFrom, streetTo, rackPrefix, rackFrom, rackTo } = validatedFields.data;
     const zones = getDbZones();
     const newZones: Zone[] = [];
+    const companyId = 'company-1'; // Hardcoded for demo
 
     for (let s = streetFrom; s <= streetTo; s++) {
         for (let r = rackFrom; r <= rackTo; r++) {
@@ -33,13 +106,14 @@ export async function addZonesBatch(data: z.infer<typeof zoneBuilderSchema>) {
             const rack = r.toString().padStart(2, '0');
             const zoneName = `${streetPrefix}${street}-${rackPrefix}${rack}`;
             
-            // Avoid creating duplicates
-            if (!zones.some(z => z.name === zoneName) && !newZones.some(z => z.name === zoneName)) {
+            // Avoid creating duplicates for the same company
+            if (!zones.some(z => z.name === zoneName && z.companyId === companyId) && !newZones.some(z => z.name === zoneName)) {
                  newZones.push({
                     id: `zone-${Date.now()}-${s}-${r}`,
                     name: zoneName,
                     description: `Zone located at Street ${street}, Rack ${rack}`,
                     createdAt: new Date().toISOString(),
+                    companyId: companyId,
                 });
             }
         }
@@ -73,6 +147,7 @@ export async function updateZone(data: z.infer<typeof zoneSchema>) {
     return { error: "Zone not found." };
   }
 
+  // In a real app, check if user has permission for this zone's company
   zones[zoneIndex] = { ...zones[zoneIndex], name, description };
   setDbZones(zones);
 
@@ -86,6 +161,7 @@ export async function updateZone(data: z.infer<typeof zoneSchema>) {
 export async function deleteZone(zoneId: string) {
   let zones = getDbZones();
   const zoneName = zones.find(z => z.id === zoneId)?.name;
+  // In a real app, check permissions
   setDbZones(zones.filter(z => z.id !== zoneId));
   
   revalidatePath("/zones");
@@ -102,6 +178,8 @@ export async function getScannedArticles(): Promise<ScannedArticle[]> {
   const articles = getDbScannedArticles();
   const zones = getDbZones();
   
+  // In a real app, you would filter articles and zones by companyId
+  
   return articles
     .map(article => ({
         ...article,
@@ -116,6 +194,11 @@ export async function addScansBatch(scans: z.infer<typeof scanBatchSchema>) {
     if (!validatedFields.success) {
         return { error: "Invalid batch data provided." };
     }
+    
+    // In a real app, get companyId and userId from session
+    const companyId = 'company-1'; 
+    const userId = `user-${Math.ceil(Math.random() * 3)}`;
+
 
     const zones = getDbZones();
     const allArticles = getDbScannedArticles();
@@ -132,9 +215,10 @@ export async function addScansBatch(scans: z.infer<typeof scanBatchSchema>) {
             zoneId: scan.zoneId,
             zoneName: zone?.name || 'Unknown Zone',
             scannedAt: scan.scannedAt,
-            userId: `user-batch-${Math.ceil(Math.random() * 3)}`,
+            userId: userId,
             countNumber: scan.countNumber,
             isSerial: false,
+            companyId: companyId,
         };
     });
 
@@ -148,6 +232,7 @@ export async function addScansBatch(scans: z.infer<typeof scanBatchSchema>) {
 
 export async function deleteScan(scanId: string) {
   let articles = getDbScannedArticles();
+  // In a real app, check permissions
   setDbScannedArticles(articles.filter(a => a.id !== scanId));
 
   revalidatePath("/articles");
@@ -168,6 +253,10 @@ export async function addSerialsBatch(serials: string[], zoneId: string, countNu
     const allArticles = getDbScannedArticles();
     const zone = zones.find(z => z.id === zoneId);
     const products = getDbProducts();
+    
+    // In a real app, get companyId and userId from session
+    const companyId = 'company-1'; 
+    const userId = `user-serial-${Math.ceil(Math.random() * 3)}`;
 
      if (!zone) {
         return { error: "Selected zone not found." };
@@ -183,9 +272,10 @@ export async function addSerialsBatch(serials: string[], zoneId: string, countNu
             zoneId: zoneId,
             zoneName: zone.name,
             scannedAt: new Date().toISOString(),
-            userId: `user-serial-${Math.ceil(Math.random() * 3)}`,
+            userId: userId,
             countNumber: countNumber,
             isSerial: true,
+            companyId: companyId,
         };
     });
 
@@ -201,6 +291,7 @@ export async function addSerialsBatch(serials: string[], zoneId: string, countNu
 
 export async function getDashboardStats() {
     await delay(100);
+    // In a real app, you would filter these by companyId from session
     const scans = getDbScannedArticles();
     const zones = getDbZones();
 
@@ -254,6 +345,7 @@ export type CountsReportItem = {
 
 export async function getCountsReport(): Promise<CountsReportItem[]> {
     await delay(50);
+    // In a real app, filter by companyId
     const scans = getDbScannedArticles();
     const products = getDbProducts();
 
@@ -275,15 +367,16 @@ export async function getCountsReport(): Promise<CountsReportItem[]> {
                 count3_zone: null,
             };
         }
+        const user = getDbUsers().find(u => u.id === scan.userId);
 
         if (scan.countNumber === 1) {
-            acc[key].count1_user = scan.userId;
+            acc[key].count1_user = user?.name || scan.userId;
             acc[key].count1_zone = scan.zoneName;
         } else if (scan.countNumber === 2) {
-            acc[key].count2_user = scan.userId;
+            acc[key].count2_user = user?.name || scan.userId;
             acc[key].count2_zone = scan.zoneName;
         } else if (scan.countNumber === 3) {
-            acc[key].count3_user = scan.userId;
+            acc[key].count3_user = user?.name || scan.userId;
             acc[key].count3_zone = scan.zoneName;
         }
         

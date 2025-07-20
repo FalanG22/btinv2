@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import type { CountsReportItem } from "@/lib/actions";
@@ -92,4 +93,3 @@ export function CountsReportTable({ data }: { data: CountsReportItem[] }) {
     </Card>
   );
 }
-
