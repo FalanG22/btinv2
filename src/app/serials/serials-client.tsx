@@ -18,6 +18,14 @@ import { Combobox } from "@/components/ui/combobox";
 import { Loader2, ScanLine, ArrowLeft, UploadCloud, Trash2 } from "lucide-react";
 import { format } from 'date-fns';
 import PageHeader from "@/components/page-header";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 type Step = 'zone' | 'count' | 'scan';
 
@@ -25,6 +33,12 @@ type StagedSerial = {
     serial: string;
     scannedAt: string;
 }
+
+type SubmissionDetails = {
+    zoneName: string;
+    countNumber: number;
+    quantity: number;
+} | null;
 
 // Helper to play a sound
 const playErrorSound = () => {
@@ -56,6 +70,7 @@ export default function SerialsClient({ zones }: { zones: Zone[] }) {
   const [selectedZone, setSelectedZone] = useState<Zone | null>(null);
   const [selectedCount, setSelectedCount] = useState<number | null>(null);
   const [stagedSerials, setStagedSerials] = useState<StagedSerial[]>([]);
+  const [submissionDetails, setSubmissionDetails] = useState<SubmissionDetails>(null);
 
   const getStorageKey = useCallback(() => {
     if (!selectedZone || !selectedCount) return null;
@@ -125,6 +140,7 @@ export default function SerialsClient({ zones }: { zones: Zone[] }) {
       setSelectedCount(null);
       setStagedSerials([]);
       form.reset({ ean: "", zoneId: "", countNumber: undefined });
+      setSubmissionDetails(null);
       setStep('zone');
   }
 
@@ -150,12 +166,15 @@ export default function SerialsClient({ zones }: { zones: Zone[] }) {
         if (result.error) {
             toast({ title: "Error", description: result.error, variant: "destructive" });
         } else {
-            toast({ title: "Success", description: result.success });
+            setSubmissionDetails({
+                zoneName: selectedZone?.name || 'Unknown',
+                countNumber: selectedCount || 0,
+                quantity: stagedSerials.length,
+            });
             const key = getStorageKey();
             if (key) {
                 localStorage.removeItem(key);
             }
-            resetFlow();
         }
     });
   };
@@ -208,6 +227,7 @@ export default function SerialsClient({ zones }: { zones: Zone[] }) {
   }, [step, selectedZone, selectedCount]);
 
   return (
+    <>
     <div className="grid flex-1 items-start gap-4 p-4 sm:px-6 lg:gap-8">
       <PageHeader title={currentTitle}>
         <div className="flex items-center gap-2">
@@ -331,5 +351,23 @@ export default function SerialsClient({ zones }: { zones: Zone[] }) {
         </div>
       )}
     </div>
+
+    <AlertDialog open={!!submissionDetails} onOpenChange={(open) => !open && resetFlow()}>
+        <AlertDialogContent>
+            <AlertDialogHeader>
+            <AlertDialogTitle>Upload Successful</AlertDialogTitle>
+            <AlertDialogDescription>
+                The following data has been uploaded successfully:
+                <ul className="mt-2 list-disc list-inside">
+                    <li><strong>Zone:</strong> {submissionDetails?.zoneName}</li>
+                    <li><strong>Count:</strong> {submissionDetails?.countNumber}</li>
+                    <li><strong>Total Serials:</strong> {submissionDetails?.quantity}</li>
+                </ul>
+            </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogAction onClick={resetFlow}>Accept</AlertDialogAction>
+        </AlertDialogContent>
+    </AlertDialog>
+    </>
   );
 }
