@@ -321,7 +321,7 @@ export default function SerialsClient({ zones }: { zones: Zone[] }) {
         <div className="grid auto-rows-max items-start gap-4 lg:grid-cols-2 lg:gap-8">
           <Card className="w-full">
             <CardHeader>
-              <CardTitle>Escanear Número de Serie</CardTitle>
+              <CardTitle>Escanear o Ingresar Serie</CardTitle>
               <CardDescription>Ingresa un número de serie para prepararlo para la carga.</CardDescription>
             </CardHeader>
             <CardContent>
@@ -345,7 +345,7 @@ export default function SerialsClient({ zones }: { zones: Zone[] }) {
 
                   <Button type="submit" disabled={isPending} className="w-full">
                     {isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <ScanLine className="mr-2 h-4 w-4" />}
-                    Añadir Serie a la Cola
+                    Añadir Serie
                   </Button>
                 </form>
               </Form>
@@ -415,3 +415,5 @@ export default function SerialsClient({ zones }: { zones: Zone[] }) {
     </>
   );
 }
+
+    

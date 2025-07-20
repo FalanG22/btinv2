@@ -322,7 +322,7 @@ export default function DashboardClient({ zones }: DashboardClientProps) {
         <div className="grid auto-rows-max items-start gap-4 lg:grid-cols-2 lg:gap-8">
           <Card className="w-full">
             <CardHeader>
-              <CardTitle>Scan Article</CardTitle>
+              <CardTitle>Scan or Enter Article</CardTitle>
               <CardDescription>Enter an EAN code to stage it for upload.</CardDescription>
             </CardHeader>
             <CardContent>
@@ -350,7 +350,7 @@ export default function DashboardClient({ zones }: DashboardClientProps) {
                     ) : (
                       <ScanLine className="mr-2 h-4 w-4" />
                     )}
-                    Add Scan to Queue
+                    Add Code
                   </Button>
                 </form>
               </Form>
@@ -420,3 +420,5 @@ export default function DashboardClient({ zones }: DashboardClientProps) {
     </>
   );
 }
+
+    
