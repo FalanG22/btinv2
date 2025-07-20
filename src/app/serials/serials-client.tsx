@@ -15,7 +15,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Combobox } from "@/components/ui/combobox";
-import { Loader2, ScanLine, ArrowLeft, UploadCloud } from "lucide-react";
+import { Loader2, ScanLine, ArrowLeft, UploadCloud, Trash2 } from "lucide-react";
 import { format } from 'date-fns';
 import PageHeader from "@/components/page-header";
 
@@ -118,6 +118,19 @@ export default function SerialsClient({ zones }: { zones: Zone[] }) {
                 localStorage.removeItem(key);
             }
         }
+    });
+  };
+
+  const handleDeleteStagedSerial = (serialToDelete: string) => {
+    const updatedSerials = stagedSerials.filter(s => s.serial !== serialToDelete);
+    setStagedSerials(updatedSerials);
+    const key = getStorageKey();
+    if (key) {
+        localStorage.setItem(key, JSON.stringify(updatedSerials));
+    }
+    toast({
+        title: "Serial Removed",
+        description: "The serial number has been removed from the queue.",
     });
   };
 
@@ -250,6 +263,7 @@ export default function SerialsClient({ zones }: { zones: Zone[] }) {
                   <TableRow>
                     <TableHead>Número de Serie</TableHead>
                     <TableHead>Hora</TableHead>
+                    <TableHead className="text-right">Action</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -258,11 +272,16 @@ export default function SerialsClient({ zones }: { zones: Zone[] }) {
                       <TableRow key={item.serial}>
                         <TableCell className="font-medium">{item.serial}</TableCell>
                         <TableCell>{isClient ? format(new Date(item.scannedAt), "HH:mm:ss") : '...'}</TableCell>
+                        <TableCell className="text-right">
+                          <Button variant="ghost" size="icon" onClick={() => handleDeleteStagedSerial(item.serial)}>
+                            <Trash2 className="h-4 w-4 text-destructive" />
+                          </Button>
+                        </TableCell>
                       </TableRow>
                     ))
                   ) : (
                     <TableRow>
-                      <TableCell colSpan={2} className="text-center h-24">No hay series preparadas.</TableCell>
+                      <TableCell colSpan={3} className="text-center h-24">No hay series preparadas.</TableCell>
                     </TableRow>
                   )}
                 </TableBody>

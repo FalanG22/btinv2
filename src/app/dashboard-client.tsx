@@ -15,7 +15,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Combobox } from "@/components/ui/combobox";
-import { Loader2, ScanLine, ArrowLeft, UploadCloud } from "lucide-react";
+import { Loader2, ScanLine, ArrowLeft, UploadCloud, Trash2 } from "lucide-react";
 import { format } from 'date-fns';
 import PageHeader from "@/components/page-header";
 
@@ -111,6 +111,19 @@ export default function DashboardClient({ zones }: DashboardClientProps) {
         }
     });
   }
+
+  const handleDeleteStagedScan = (index: number) => {
+    const updatedScans = stagedScans.filter((_, i) => i !== index);
+    setStagedScans(updatedScans);
+    const key = getStorageKey();
+    if (key) {
+        localStorage.setItem(key, JSON.stringify(updatedScans));
+    }
+    toast({
+        title: "Scan Removed",
+        description: "The scan has been removed from the queue.",
+    });
+  };
 
   const handleZoneSelect = (zoneId: string) => {
     const zone = zones.find(z => z.id === zoneId);
@@ -245,6 +258,7 @@ export default function DashboardClient({ zones }: DashboardClientProps) {
                   <TableRow>
                     <TableHead>EAN</TableHead>
                     <TableHead>Time</TableHead>
+                    <TableHead className="text-right">Action</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -253,11 +267,16 @@ export default function DashboardClient({ zones }: DashboardClientProps) {
                       <TableRow key={`${scan.ean}-${index}`}>
                         <TableCell className="font-medium">{scan.ean}</TableCell>
                         <TableCell>{isClient ? format(new Date(scan.scannedAt), "HH:mm:ss") : '...'}</TableCell>
+                        <TableCell className="text-right">
+                          <Button variant="ghost" size="icon" onClick={() => handleDeleteStagedScan(index)}>
+                            <Trash2 className="h-4 w-4 text-destructive" />
+                          </Button>
+                        </TableCell>
                       </TableRow>
                     ))
                   ) : (
                     <TableRow>
-                      <TableCell colSpan={2} className="text-center h-24">No staged scans.</TableCell>
+                      <TableCell colSpan={3} className="text-center h-24">No staged scans.</TableCell>
                     </TableRow>
                   )}
                 </TableBody>
