@@ -394,8 +394,8 @@ export default function DashboardClient({ zones }: DashboardClientProps) {
         <div className="grid auto-rows-max items-start gap-4 lg:grid-cols-2 lg:gap-8">
           <Card className="w-full">
             <CardHeader>
-              <CardTitle>Escanear o Ingresar Artículo</CardTitle>
-              <CardDescription>Ingresa un código EAN para prepararlo para la carga. El código debe existir en el maestro de artículos.</CardDescription>
+              <CardTitle className="text-xl sm:text-2xl">Escanear Artículo</CardTitle>
+              <CardDescription className="hidden sm:block">Ingresa un código EAN para prepararlo para la carga. El código debe existir en el maestro de artículos.</CardDescription>
             </CardHeader>
             <CardContent>
               <Form {...form}>
@@ -432,8 +432,8 @@ export default function DashboardClient({ zones }: DashboardClientProps) {
 
           <Card>
             <CardHeader>
-              <CardTitle>Escaneos Preparados (Conteo {selectedCount})</CardTitle>
-              <CardDescription>Artículos esperando para ser cargados.</CardDescription>
+              <CardTitle className="text-xl sm:text-2xl">Escaneos Preparados</CardTitle>
+              <CardDescription className="hidden sm:block">Artículos esperando para ser cargados.</CardDescription>
             </CardHeader>
             <CardContent>
               <Table>

@@ -355,8 +355,8 @@ export default function SerialsClient({ zones }: { zones: Zone[] }) {
         <div className="grid auto-rows-max items-start gap-4 lg:grid-cols-2 lg:gap-8">
           <Card className="w-full">
             <CardHeader>
-              <CardTitle>Escanear o Ingresar Serie</CardTitle>
-              <CardDescription>Ingresa un número de serie para prepararlo para la carga. La serie debe existir en el maestro de artículos.</CardDescription>
+              <CardTitle className="text-xl sm:text-2xl">Escanear Serie</CardTitle>
+              <CardDescription className="hidden sm:block">Ingresa un número de serie para prepararlo para la carga. La serie debe existir en el maestro de artículos.</CardDescription>
             </CardHeader>
             <CardContent>
               <Form {...form}>
@@ -393,8 +393,8 @@ export default function SerialsClient({ zones }: { zones: Zone[] }) {
 
           <Card>
             <CardHeader>
-              <CardTitle>Series Preparadas (Conteo {selectedCount})</CardTitle>
-              <CardDescription>Números de serie esperando para ser cargados.</CardDescription>
+              <CardTitle className="text-xl sm:text-2xl">Series Preparadas</CardTitle>
+              <CardDescription className="hidden sm:block">Números de serie esperando para ser cargados.</CardDescription>
             </CardHeader>
             <CardContent>
               <Table>
