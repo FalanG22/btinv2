@@ -9,8 +9,9 @@ import { redirect } from 'next/navigation';
 export default async function AppLayout({ children }: { children: ReactNode }) {
   const user = await getCurrentUser();
   
-  // If no user is found, the middleware should have already redirected.
-  // This is an extra safeguard.
+  // This is a safeguard. The middleware should already handle redirection.
+  // If for any reason this server component renders without a user,
+  // we redirect to login to prevent errors.
   if (!user) {
     redirect('/login');
   }
