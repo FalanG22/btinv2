@@ -92,3 +92,4 @@ export function CountsReportTable({ data }: { data: CountsReportItem[] }) {
     </Card>
   );
 }
+
