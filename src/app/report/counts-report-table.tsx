@@ -41,6 +41,8 @@ export function CountsReportTable({ data }: { data: CountsReportItem[] }) {
             <TableHeader>
               <TableRow>
                 <TableHead className="w-[200px]">Article Code</TableHead>
+                <TableHead>SKU</TableHead>
+                <TableHead>Description</TableHead>
                 <TableHead>Count 1 (User / Zone)</TableHead>
                 <TableHead>Count 2 (User / Zone)</TableHead>
                 <TableHead>Count 3 (User / Zone)</TableHead>
@@ -58,6 +60,8 @@ export function CountsReportTable({ data }: { data: CountsReportItem[] }) {
                     return (
                         <TableRow key={item.key}>
                             <TableCell className="font-medium">{item.ean}</TableCell>
+                            <TableCell>{item.sku}</TableCell>
+                            <TableCell>{item.description}</TableCell>
                             <CountCell user={item.count1_user} zone={item.count1_zone} />
                             <CountCell user={item.count2_user} zone={item.count2_zone} />
                             <CountCell user={item.count3_user} zone={item.count3_zone} />
@@ -76,7 +80,7 @@ export function CountsReportTable({ data }: { data: CountsReportItem[] }) {
                 })
               ) : (
                 <TableRow>
-                  <TableCell colSpan={5} className="h-24 text-center">
+                  <TableCell colSpan={7} className="h-24 text-center">
                     No report data available.
                   </TableCell>
                 </TableRow>

@@ -3,7 +3,7 @@
 
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
-import { getDbScannedArticles, getDbZones, setDbScannedArticles, setDbZones, type ScannedArticle, type Zone } from "./data";
+import { getDbScannedArticles, getDbZones, setDbScannedArticles, setDbZones, type ScannedArticle, type Zone, getDbProducts } from "./data";
 import { scanSchema, zoneSchema, scanBatchSchema, serialBatchSchema } from "./schemas";
 
 // --- Helper Functions ---
@@ -90,12 +90,16 @@ export async function addScansBatch(scans: z.infer<typeof scanBatchSchema>) {
 
     const zones = getDbZones();
     const allArticles = getDbScannedArticles();
+    const products = getDbProducts();
 
     const newScans: ScannedArticle[] = validatedFields.data.map((scan, index) => {
         const zone = zones.find(z => z.id === scan.zoneId);
+        const productInfo = products.find(p => p.code === scan.ean);
         return {
             id: `scan-batch-${Date.now()}-${index}`,
             ean: scan.ean,
+            sku: productInfo?.sku || 'N/A',
+            description: productInfo?.description || 'Producto no encontrado',
             zoneId: scan.zoneId,
             zoneName: zone?.name || 'Unknown Zone',
             scannedAt: scan.scannedAt,
@@ -133,21 +137,27 @@ export async function addSerialsBatch(serials: string[], zoneId: string, countNu
     const zones = getDbZones();
     const allArticles = getDbScannedArticles();
     const zone = zones.find(z => z.id === zoneId);
+    const products = getDbProducts();
 
      if (!zone) {
         return { error: "Selected zone not found." };
     }
 
-    const newEntries: ScannedArticle[] = serials.map((serial, index) => ({
-        id: `serial-batch-${Date.now()}-${index}`,
-        ean: serial,
-        zoneId: zoneId,
-        zoneName: zone.name,
-        scannedAt: new Date().toISOString(),
-        userId: `user-serial-${Math.ceil(Math.random() * 3)}`,
-        countNumber: countNumber,
-        isSerial: true,
-    }));
+    const newEntries: ScannedArticle[] = serials.map((serial, index) => {
+        const productInfo = products.find(p => p.code === serial);
+        return {
+            id: `serial-batch-${Date.now()}-${index}`,
+            ean: serial,
+            sku: productInfo?.sku || 'N/A',
+            description: productInfo?.description || 'Producto no encontrado',
+            zoneId: zoneId,
+            zoneName: zone.name,
+            scannedAt: new Date().toISOString(),
+            userId: `user-serial-${Math.ceil(Math.random() * 3)}`,
+            countNumber: countNumber,
+            isSerial: true,
+        };
+    });
 
     setDbScannedArticles([...newEntries, ...allArticles]);
     revalidatePath("/articles");
@@ -202,6 +212,8 @@ export async function getDashboardStats() {
 export type CountsReportItem = {
     key: string;
     ean: string;
+    sku: string;
+    description: string;
     count1_user: string | null;
     count1_zone: string | null;
     count2_user: string | null;
@@ -221,6 +233,8 @@ export async function getCountsReport(): Promise<CountsReportItem[]> {
             acc[key] = {
                 key: key,
                 ean: scan.ean,
+                sku: scan.sku,
+                description: scan.description,
                 count1_user: null,
                 count1_zone: null,
                 count2_user: null,

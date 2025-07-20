@@ -63,10 +63,11 @@ export function ArticlesTable({ data }: { data: ScannedArticle[] }) {
             <TableHeader>
               <TableRow>
                 <TableHead>Code (EAN/Serial)</TableHead>
+                <TableHead>SKU</TableHead>
+                <TableHead>Description</TableHead>
                 <TableHead>Type</TableHead>
                 <TableHead>Zone</TableHead>
                 <TableHead>Count</TableHead>
-                <TableHead className="hidden md:table-cell">Scanned By</TableHead>
                 <TableHead className="hidden md:table-cell">Scanned At</TableHead>
                 <TableHead>
                   <span className="sr-only">Actions</span>
@@ -78,6 +79,8 @@ export function ArticlesTable({ data }: { data: ScannedArticle[] }) {
                 data.map((article) => (
                   <TableRow key={article.id}>
                     <TableCell className="font-medium">{article.ean}</TableCell>
+                    <TableCell>{article.sku}</TableCell>
+                    <TableCell>{article.description}</TableCell>
                     <TableCell>
                       {article.isSerial ? (
                         <Badge variant="outline" className="gap-1 pl-2 pr-3">
@@ -93,7 +96,6 @@ export function ArticlesTable({ data }: { data: ScannedArticle[] }) {
                     <TableCell>
                         <Badge variant="secondary">C{article.countNumber}</Badge>
                     </TableCell>
-                    <TableCell className="hidden md:table-cell">{article.userId}</TableCell>
                     <TableCell className="hidden md:table-cell">
                       {isClient ? format(new Date(article.scannedAt), "MMMM d, yyyy 'at' HH:mm") : '...'}
                     </TableCell>
@@ -146,7 +148,7 @@ export function ArticlesTable({ data }: { data: ScannedArticle[] }) {
                 ))
               ) : (
                 <TableRow>
-                  <TableCell colSpan={7} className="h-24 text-center">
+                  <TableCell colSpan={8} className="h-24 text-center">
                     No articles found.
                   </TableCell>
                 </TableRow>
