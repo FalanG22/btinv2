@@ -4,7 +4,7 @@
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { getDbScannedArticles, getDbZones, setDbScannedArticles, setDbZones, type ScannedArticle, type Zone, getDbProducts, getDbUsers, getDbCompanies, setDbUsers, type User, type Company, type Product, setDbProducts } from "./data";
-import { scanSchema, zoneSchema, scanBatchSchema, serialBatchSchema, zoneBuilderSchema, userSchema } from "./schemas";
+import { scanSchema, zoneSchema, scanBatchSchema, serialBatchSchema, zoneBuilderSchema, userSchema, productsCsvSchema } from "./schemas";
 import { getCurrentUser } from "./session";
 import { redirect } from "next/navigation";
 
@@ -265,6 +265,37 @@ export async function getProducts(): Promise<Product[]> {
     // In a real app, this would be company-specific.
     // For this demo, we return all products.
     return getDbProducts();
+}
+
+export async function addProductsFromCsv(products: Product[]) {
+    const session = await getCurrentUser();
+    if (!session) {
+        return { error: "No autorizado." };
+    }
+
+    const validatedFields = productsCsvSchema.safeParse(products);
+    if (!validatedFields.success) {
+        return { error: "El formato del CSV no es válido. Asegúrate de que tenga las columnas 'code', 'sku', y 'description'." };
+    }
+
+    let allProducts = getDbProducts();
+    const newProducts: Product[] = [];
+
+    for (const product of validatedFields.data) {
+        // Update existing product or add new one
+        const existingIndex = allProducts.findIndex(p => p.code === product.code);
+        if (existingIndex !== -1) {
+            allProducts[existingIndex] = product;
+        } else {
+            newProducts.push(product);
+        }
+    }
+
+    const finalProducts = [...allProducts, ...newProducts];
+    setDbProducts(finalProducts);
+
+    revalidatePath("/articles");
+    return { success: `${products.length} artículos importados o actualizados correctamente.` };
 }
 
 export async function validateEan(ean: string): Promise<{ exists: boolean }> {

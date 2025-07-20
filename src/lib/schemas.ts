@@ -55,3 +55,11 @@ export const serialBatchSchema = z.object({
   zoneId: z.string().min(1),
   countNumber: z.number().min(1).max(3),
 });
+
+const productCsvSchema = z.object({
+    code: z.string().min(1),
+    sku: z.string().min(1),
+    description: z.string().min(1),
+});
+
+export const productsCsvSchema = z.array(productCsvSchema);
