@@ -27,6 +27,7 @@ export default async function MobileSidebar({ user }: { user: AuthenticatedUser 
   const accessibleNavItems = navItems.filter((item) => item.roles.includes(userRole) && !item.isReport);
   const reportItems = navItems.filter((item) => item.roles.includes(userRole) && item.isReport);
   const hasReportsAccess = reportItems.length > 0;
+  const isReportsSectionActive = reportItems.some(item => pathname.startsWith(item.href));
 
   return (
     <header className="sticky top-0 z-30 flex h-14 items-center gap-4 border-b bg-background px-4 sm:static sm:h-auto sm:border-0 sm:bg-transparent sm:px-6 sm:hidden">
@@ -53,7 +54,7 @@ export default async function MobileSidebar({ user }: { user: AuthenticatedUser 
                 href={item.href}
                 className={cn(
                   "flex items-center gap-4 px-2.5 text-muted-foreground hover:text-foreground",
-                  pathname.startsWith(item.href) && "text-foreground"
+                  pathname === item.href && "text-foreground font-semibold"
                 )}
               >
                 <item.icon className="h-5 w-5" />
@@ -62,8 +63,11 @@ export default async function MobileSidebar({ user }: { user: AuthenticatedUser 
             ))}
 
             {hasReportsAccess && (
-              <Collapsible>
-                <CollapsibleTrigger className="flex w-full items-center justify-between gap-4 px-2.5 text-muted-foreground hover:text-foreground [&[data-state=open]>svg]:rotate-180">
+              <Collapsible defaultOpen={isReportsSectionActive}>
+                <CollapsibleTrigger className={cn(
+                    "flex w-full items-center justify-between gap-4 px-2.5 text-muted-foreground hover:text-foreground [&[data-state=open]>svg]:rotate-180",
+                    isReportsSectionActive && "text-foreground font-semibold"
+                )}>
                    <div className="flex items-center gap-4">
                     <AreaChart className="h-5 w-5" />
                     <span>Reportes</span>
@@ -77,7 +81,7 @@ export default async function MobileSidebar({ user }: { user: AuthenticatedUser 
                       href={item.href}
                       className={cn(
                         "flex items-center gap-3 text-sm text-muted-foreground hover:text-foreground",
-                        pathname.startsWith(item.href) && "text-foreground font-semibold"
+                        pathname === item.href && "text-foreground font-semibold"
                       )}
                     >
                       <item.icon className="h-4 w-4" />

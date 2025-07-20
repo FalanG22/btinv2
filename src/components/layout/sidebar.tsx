@@ -35,6 +35,7 @@ export default async function Sidebar({ user }: { user: AuthenticatedUser }) {
   const accessibleNavItems = navItems.filter(item => item.roles.includes(userRole) && !item.isReport);
   const reportItems = navItems.filter(item => item.roles.includes(userRole) && item.isReport);
   const hasReportsAccess = reportItems.length > 0;
+  const isReportsSectionActive = reportItems.some(item => pathname.startsWith(item.href));
 
   return (
     <aside className="fixed inset-y-0 left-0 z-10 hidden w-14 flex-col border-r bg-background sm:flex">
@@ -55,7 +56,7 @@ export default async function Sidebar({ user }: { user: AuthenticatedUser }) {
                   href={item.href}
                   className={cn(
                     "flex h-9 w-9 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:text-foreground md:h-8 md:w-8",
-                    pathname.startsWith(item.href) && item.href !== "/dashboard" ? "bg-accent text-accent-foreground" : pathname === item.href ? "bg-accent text-accent-foreground" : ""
+                    pathname.startsWith(item.href) ? "bg-accent text-accent-foreground" : ""
                   )}
                 >
                   <item.icon className="h-5 w-5" />
@@ -72,7 +73,7 @@ export default async function Sidebar({ user }: { user: AuthenticatedUser }) {
                 <TooltipTrigger asChild>
                   <DropdownMenuTrigger asChild>
                     <Button
-                      variant={reportItems.some(item => pathname.startsWith(item.href)) ? 'accent' : 'ghost'}
+                      variant={isReportsSectionActive ? 'accent' : 'ghost'}
                       size="icon"
                       className="flex h-9 w-9 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:text-foreground md:h-8 md:w-8"
                     >
