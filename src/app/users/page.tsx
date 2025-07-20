@@ -1,3 +1,4 @@
+
 import PageHeader from "@/components/page-header";
 import { getUsers, getCompanies } from "@/lib/actions";
 import { UserDialog } from "./user-dialog";
@@ -19,7 +20,7 @@ export default async function UsersPage() {
 
 
   return (
-    <div className="grid flex-1 items-start gap-4 p-4 sm:px-6 lg:gap-8">
+    <div className="grid flex-1 items-start gap-4 lg:gap-8">
       <PageHeader
         title="Gestión de Usuarios"
         description="Crear y gestionar cuentas de usuario para tu empresa."

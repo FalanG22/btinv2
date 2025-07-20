@@ -261,7 +261,7 @@ export default function DashboardClient({ zones }: DashboardClientProps) {
 
   return (
     <>
-    <div className="grid flex-1 items-start gap-4 p-4 sm:px-6 lg:gap-8">
+    <div className="grid flex-1 items-start gap-4 lg:gap-8">
       <PageHeader title={currentTitle}>
         <div className="flex items-center gap-2">
             {step === 'scan' && (

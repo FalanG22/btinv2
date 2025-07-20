@@ -1,4 +1,3 @@
-"use server";
 
 import Link from "next/link";
 import {
@@ -14,7 +13,7 @@ import { Button } from "../ui/button";
 import type { AuthenticatedUser } from "@/lib/session";
 import { headers } from "next/headers";
 
-const navItems = [
+export const navItems = [
   { href: "/dashboard", icon: LayoutDashboard, label: "Panel", roles: ['admin', 'user'] },
   { href: "/ean", icon: ScanLine, label: "Escanear EAN", roles: ['admin', 'user'] },
   { href: "/serials", icon: Hash, label: "Escanear Series", roles: ['admin', 'user'] },
