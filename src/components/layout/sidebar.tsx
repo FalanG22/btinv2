@@ -89,7 +89,7 @@ export default async function Sidebar({ user }: { user: AuthenticatedUser }) {
                 <DropdownMenuSeparator />
                 {reportItems.map((item) => (
                   <Link href={item.href} key={item.href}>
-                    <DropdownMenuItem className={cn("gap-2", pathname === item.href && "bg-accent/50")}>
+                    <DropdownMenuItem className={cn("gap-2", pathname.startsWith(item.href) && "bg-accent/50")}>
                       <item.icon className="h-4 w-4" />
                       {item.label}
                     </DropdownMenuItem>

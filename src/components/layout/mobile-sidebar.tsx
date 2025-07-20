@@ -54,7 +54,7 @@ export default async function MobileSidebar({ user }: { user: AuthenticatedUser 
                 href={item.href}
                 className={cn(
                   "flex items-center gap-4 px-2.5 text-muted-foreground hover:text-foreground",
-                  pathname === item.href && "text-foreground font-semibold"
+                  pathname.startsWith(item.href) && "text-foreground font-semibold"
                 )}
               >
                 <item.icon className="h-5 w-5" />
@@ -81,7 +81,7 @@ export default async function MobileSidebar({ user }: { user: AuthenticatedUser 
                       href={item.href}
                       className={cn(
                         "flex items-center gap-3 text-sm text-muted-foreground hover:text-foreground",
-                        pathname === item.href && "text-foreground font-semibold"
+                        pathname.startsWith(item.href) && "text-foreground font-semibold"
                       )}
                     >
                       <item.icon className="h-4 w-4" />
