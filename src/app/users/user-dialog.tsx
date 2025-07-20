@@ -58,7 +58,8 @@ export function UserDialog({ user, children, companies }: UserDialogProps) {
       id: user?.id,
       name: user?.name || "",
       email: user?.email || "",
-      companyId: user?.companyId || "",
+      // Default to the first (and likely only) company available to the admin
+      companyId: user?.companyId || companies[0]?.id || "",
       role: user?.role || "user",
     },
   });
@@ -74,7 +75,12 @@ export function UserDialog({ user, children, companies }: UserDialogProps) {
       } else {
         toast({ title: "Success", description: result.success });
         setOpen(false);
-        form.reset();
+        form.reset({
+          name: "",
+          email: "",
+          companyId: companies[0]?.id || "",
+          role: "user"
+        });
       }
     });
   };

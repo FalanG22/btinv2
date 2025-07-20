@@ -6,14 +6,13 @@ import { UsersTable } from "./users-table";
 
 // For this demo, we assume an admin user is logged in.
 // In a real app, you would get this from the user's session.
-const
-  session = {
+const session = {
     user: {
       id: 'user-admin',
       role: 'admin',
       companyId: 'company-1'
     }
-  };
+};
 
 
 export default async function UsersPage() {
@@ -25,21 +24,26 @@ export default async function UsersPage() {
     )
   }
 
-  // In a real app, an admin might see users from their own company or all companies.
-  // Here, we'll show all users.
+  // An admin will only see users from their own company.
   const users = await getUsers();
-  const companies = await getCompanies();
+  
+  // To assign a user to a company, the admin needs the list of companies.
+  // In a super-admin scenario, this would be all companies.
+  // For a company-admin, we'll just pass their own company.
+  const allCompanies = await getCompanies();
+  const companiesForAdmin = allCompanies.filter(c => c.id === session.user.companyId);
+
 
   return (
     <div className="grid flex-1 items-start gap-4 p-4 sm:px-6 lg:gap-8">
       <PageHeader
         title="User Management"
-        description="Create and manage user accounts."
+        description="Create and manage user accounts for your company."
       >
-        <UserDialog companies={companies} />
+        <UserDialog companies={companiesForAdmin} />
       </PageHeader>
 
-      <UsersTable data={users} companies={companies} />
+      <UsersTable data={users} companies={companiesForAdmin} />
     </div>
   );
 }

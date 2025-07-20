@@ -9,10 +9,21 @@ import { scanSchema, zoneSchema, scanBatchSchema, serialBatchSchema, zoneBuilder
 // --- Helper Functions ---
 const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
+// For this demo, we assume a user is logged in.
+// In a real app, you would get this from the user's session.
+const session = {
+    user: {
+      id: 'user-admin',
+      role: 'admin',
+      companyId: 'company-1'
+    }
+};
+
 // --- User Actions ---
 export async function getUsers(): Promise<User[]> {
   await delay(50);
-  return getDbUsers();
+  // Filter users by the logged-in user's company
+  return getDbUsers().filter(u => u.companyId === session.user.companyId);
 }
 
 export async function deleteUser(userId: string) {
@@ -20,6 +31,13 @@ export async function deleteUser(userId: string) {
         return { error: "Cannot delete the default admin user." };
     }
     let users = getDbUsers();
+    const userToDelete = users.find(u => u.id === userId);
+
+    // Security check: ensure admin can only delete users from their own company
+    if (userToDelete?.companyId !== session.user.companyId) {
+        return { error: "You do not have permission to delete this user." };
+    }
+
     setDbUsers(users.filter(u => u.id !== userId));
     revalidatePath("/users");
     return { success: "User deleted successfully." };
@@ -31,6 +49,12 @@ export async function createUser(data: z.infer<typeof userSchema>) {
         return { error: "Invalid data provided." };
     }
     const { name, email, companyId, role } = validatedFields.data;
+
+    // Security check: ensure admin can only create users for their own company
+    if (companyId !== session.user.companyId) {
+         return { error: "You can only create users for your own company." };
+    }
+
     let users = getDbUsers();
     if (users.some(u => u.email === email)) {
         return { error: "A user with this email already exists." };
@@ -61,6 +85,11 @@ export async function updateUser(data: z.infer<typeof userSchema>) {
         return { error: "User not found." };
     }
 
+    // Security check: ensure admin can only update users in their own company
+    if (users[userIndex].companyId !== session.user.companyId || companyId !== session.user.companyId) {
+         return { error: "You do not have permission to update this user." };
+    }
+
     // Prevent changing email to one that already exists
     if (users.some(u => u.email === email && u.id !== id)) {
         return { error: "Another user with this email already exists." };
@@ -76,6 +105,8 @@ export async function updateUser(data: z.infer<typeof userSchema>) {
 // --- Company Actions ---
 export async function getCompanies(): Promise<Company[]> {
     await delay(50);
+    // In this demo, an admin can see all companies to assign users,
+    // but in a strict multi-tenant system, this might be restricted.
     return getDbCompanies();
 }
 
@@ -83,9 +114,11 @@ export async function getCompanies(): Promise<Company[]> {
 // --- Zone Actions ---
 
 export async function getZones(): Promise<Zone[]> {
-  await delay(50); // Simulate network latency
-  // In a real app, you would filter by companyId from the user's session
-  return getDbZones().sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+  await delay(50); 
+  // Filter zones by the logged-in user's company
+  return getDbZones()
+    .filter(z => z.companyId === session.user.companyId)
+    .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
 }
 
 export async function addZonesBatch(data: z.infer<typeof zoneBuilderSchema>) {
@@ -98,7 +131,7 @@ export async function addZonesBatch(data: z.infer<typeof zoneBuilderSchema>) {
     const { streetPrefix, streetFrom, streetTo, rackPrefix, rackFrom, rackTo } = validatedFields.data;
     const zones = getDbZones();
     const newZones: Zone[] = [];
-    const companyId = 'company-1'; // Hardcoded for demo
+    const companyId = session.user.companyId; 
 
     for (let s = streetFrom; s <= streetTo; s++) {
         for (let r = rackFrom; r <= rackTo; r++) {
@@ -106,7 +139,6 @@ export async function addZonesBatch(data: z.infer<typeof zoneBuilderSchema>) {
             const rack = r.toString().padStart(2, '0');
             const zoneName = `${streetPrefix}${street}-${rackPrefix}${rack}`;
             
-            // Avoid creating duplicates for the same company
             if (!zones.some(z => z.name === zoneName && z.companyId === companyId) && !newZones.some(z => z.name === zoneName)) {
                  newZones.push({
                     id: `zone-${Date.now()}-${s}-${r}`,
@@ -125,8 +157,8 @@ export async function addZonesBatch(data: z.infer<typeof zoneBuilderSchema>) {
 
     setDbZones([...newZones, ...zones]);
     revalidatePath("/zones");
-    revalidatePath("/ean"); // Revalidate EAN scanning page
-    revalidatePath("/serials"); // Revalidate Serials scanning page
+    revalidatePath("/ean"); 
+    revalidatePath("/serials"); 
     revalidatePath("/dashboard");
     return { success: `${newZones.length} zones created successfully.` };
 }
@@ -147,7 +179,11 @@ export async function updateZone(data: z.infer<typeof zoneSchema>) {
     return { error: "Zone not found." };
   }
 
-  // In a real app, check if user has permission for this zone's company
+  // Security check: ensure user has permission for this zone's company
+  if (zones[zoneIndex].companyId !== session.user.companyId) {
+      return { error: "You do not have permission to update this zone." };
+  }
+
   zones[zoneIndex] = { ...zones[zoneIndex], name, description };
   setDbZones(zones);
 
@@ -160,8 +196,14 @@ export async function updateZone(data: z.infer<typeof zoneSchema>) {
 
 export async function deleteZone(zoneId: string) {
   let zones = getDbZones();
-  const zoneName = zones.find(z => z.id === zoneId)?.name;
-  // In a real app, check permissions
+  const zone = zones.find(z => z.id === zoneId);
+
+  // Security check
+  if (!zone || zone.companyId !== session.user.companyId) {
+      return { error: "You do not have permission to delete this zone." };
+  }
+  
+  const zoneName = zone.name;
   setDbZones(zones.filter(z => z.id !== zoneId));
   
   revalidatePath("/zones");
@@ -175,10 +217,8 @@ export async function deleteZone(zoneId: string) {
 
 export async function getScannedArticles(): Promise<ScannedArticle[]> {
   await delay(50);
-  const articles = getDbScannedArticles();
-  const zones = getDbZones();
-  
-  // In a real app, you would filter articles and zones by companyId
+  const articles = getDbScannedArticles().filter(a => a.companyId === session.user.companyId);
+  const zones = getDbZones().filter(z => z.companyId === session.user.companyId);
   
   return articles
     .map(article => ({
@@ -195,9 +235,8 @@ export async function addScansBatch(scans: z.infer<typeof scanBatchSchema>) {
         return { error: "Invalid batch data provided." };
     }
     
-    // In a real app, get companyId and userId from session
-    const companyId = 'company-1'; 
-    const userId = `user-${Math.ceil(Math.random() * 3)}`;
+    const companyId = session.user.companyId; 
+    const userId = session.user.id;
 
 
     const zones = getDbZones();
@@ -206,6 +245,7 @@ export async function addScansBatch(scans: z.infer<typeof scanBatchSchema>) {
 
     const newScans: ScannedArticle[] = validatedFields.data.map((scan, index) => {
         const zone = zones.find(z => z.id === scan.zoneId);
+        // Security check for zone ownership can be added here
         const productInfo = products.find(p => p.code === scan.ean);
         return {
             id: `scan-batch-${Date.now()}-${index}`,
@@ -232,7 +272,13 @@ export async function addScansBatch(scans: z.infer<typeof scanBatchSchema>) {
 
 export async function deleteScan(scanId: string) {
   let articles = getDbScannedArticles();
-  // In a real app, check permissions
+  const scan = articles.find(a => a.id === scanId);
+
+  // Security check
+  if (!scan || scan.companyId !== session.user.companyId) {
+      return { error: "You do not have permission to delete this scan." };
+  }
+
   setDbScannedArticles(articles.filter(a => a.id !== scanId));
 
   revalidatePath("/articles");
@@ -254,12 +300,11 @@ export async function addSerialsBatch(serials: string[], zoneId: string, countNu
     const zone = zones.find(z => z.id === zoneId);
     const products = getDbProducts();
     
-    // In a real app, get companyId and userId from session
-    const companyId = 'company-1'; 
-    const userId = `user-serial-${Math.ceil(Math.random() * 3)}`;
+    const companyId = session.user.companyId; 
+    const userId = session.user.id;
 
-     if (!zone) {
-        return { error: "Selected zone not found." };
+    if (!zone || zone.companyId !== companyId) {
+        return { error: "Selected zone not found or you don't have permission." };
     }
 
     const newEntries: ScannedArticle[] = serials.map((serial, index) => {
@@ -291,9 +336,9 @@ export async function addSerialsBatch(serials: string[], zoneId: string, countNu
 
 export async function getDashboardStats() {
     await delay(100);
-    // In a real app, you would filter these by companyId from session
-    const scans = getDbScannedArticles();
-    const zones = getDbZones();
+    const companyId = session.user.companyId;
+    const scans = getDbScannedArticles().filter(s => s.companyId === companyId);
+    const zones = getDbZones().filter(z => z.companyId === companyId);
 
     const today = new Date().toDateString();
     const todayScans = scans.filter(scan => new Date(scan.scannedAt).toDateString() === today);
@@ -345,12 +390,13 @@ export type CountsReportItem = {
 
 export async function getCountsReport(): Promise<CountsReportItem[]> {
     await delay(50);
-    // In a real app, filter by companyId
-    const scans = getDbScannedArticles();
+    const companyId = session.user.companyId;
+    const scans = getDbScannedArticles().filter(s => s.companyId === companyId);
     const products = getDbProducts();
+    const users = getDbUsers(); // Get all users to find names by ID
 
     const reportMap = scans.reduce((acc, scan) => {
-        const key = scan.ean; // Group by article code only
+        const key = scan.ean; 
         const productInfo = products.find(p => p.code === scan.ean);
 
         if (!acc[key]) {
@@ -367,7 +413,7 @@ export async function getCountsReport(): Promise<CountsReportItem[]> {
                 count3_zone: null,
             };
         }
-        const user = getDbUsers().find(u => u.id === scan.userId);
+        const user = users.find(u => u.id === scan.userId);
 
         if (scan.countNumber === 1) {
             acc[key].count1_user = user?.name || scan.userId;
