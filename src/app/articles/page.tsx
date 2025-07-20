@@ -2,6 +2,7 @@ import PageHeader from "@/components/page-header";
 import { getScannedArticles } from "@/lib/actions";
 import { CsvUpload } from "./csv-upload";
 import { ArticlesTable } from "./articles-table";
+import { CsvInfoDialog } from "./csv-info-dialog";
 
 export default async function ArticlesPage() {
     const articles = await getScannedArticles();
@@ -12,7 +13,10 @@ export default async function ArticlesPage() {
                 title="Gestión de Artículos"
                 description="Ver y gestionar todos los artículos escaneados."
             >
-                <CsvUpload />
+                <div className="flex items-center gap-2">
+                    <CsvUpload />
+                    <CsvInfoDialog />
+                </div>
             </PageHeader>
 
             <ArticlesTable data={articles} />
