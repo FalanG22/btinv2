@@ -44,7 +44,7 @@ export function DeleteAllButton({ disabled }: { disabled: boolean }) {
       </AlertDialogTrigger>
       <AlertDialogContent>
         <AlertDialogHeader>
-          <AlertDialogTitle>¿Estás absolutamente seguro?</AlertDialogTitle>
+          <AlertDialogTitle>¿Estás absolutely seguro?</AlertDialogTitle>
           <AlertDialogDescription>
             Esta acción no se puede deshacer. Se eliminarán permanentemente todos los registros de artículos escaneados para tu empresa.
           </AlertDialogDescription>
