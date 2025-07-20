@@ -30,12 +30,26 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import { Badge } from "@/components/ui/badge";
 
 type DashboardClientProps = {
   zones: Zone[];
 };
 
 type Step = 'zone' | 'count' | 'scan';
+
+type StagedScan = {
+  ean: string;
+  scannedAt: string;
+  zoneId: string;
+  countNumber: number;
+};
+
+type GroupedScan = {
+    ean: string;
+    quantity: number;
+    lastScannedAt: string;
+}
 
 type SubmissionDetails = {
     zoneName: string;
@@ -72,7 +86,7 @@ export default function DashboardClient({ zones }: DashboardClientProps) {
   const [step, setStep] = useState<Step>('zone');
   const [selectedZone, setSelectedZone] = useState<Zone | null>(null);
   const [selectedCount, setSelectedCount] = useState<number | null>(null);
-  const [stagedScans, setStagedScans] = useState<Omit<ScannedArticle, 'id' | 'zoneName' | 'userId' | 'isSerial'>[]>([]);
+  const [stagedScans, setStagedScans] = useState<StagedScan[]>([]);
   const [submissionDetails, setSubmissionDetails] = useState<SubmissionDetails>(null);
 
   const getStorageKey = useCallback(() => {
@@ -109,19 +123,7 @@ export default function DashboardClient({ zones }: DashboardClientProps) {
 
   const onSubmit = (values: z.infer<typeof scanSchema>) => {
     startTransition(async () => {
-      // 1. Check for duplicates locally
-      if (stagedScans.some(s => s.ean === values.ean)) {
-          playErrorSound();
-          toast({
-              title: "EAN Duplicado",
-              description: "Este EAN ya ha sido escaneado en esta sesión.",
-              variant: "destructive"
-          });
-          form.reset({ ean: "", zoneId: selectedZone?.id, countNumber: selectedCount ?? undefined });
-          return;
-      }
-      
-      // 2. Validate if EAN exists in master products
+      // 1. Validate if EAN exists in master products
       const { exists } = await validateEan(values.ean);
       if (!exists) {
         playErrorSound();
@@ -134,14 +136,14 @@ export default function DashboardClient({ zones }: DashboardClientProps) {
         return;
       }
 
-      // 3. If valid, add to staged scans
-      const newScan = {
+      // 2. If valid, add to staged scans
+      const newScan: StagedScan = {
           ean: values.ean,
           scannedAt: new Date().toISOString(),
           zoneId: values.zoneId,
           countNumber: values.countNumber,
       };
-      const updatedScans = [newScan, ...stagedScans];
+      const updatedScans = [...stagedScans, newScan];
       setStagedScans(updatedScans);
 
       const key = getStorageKey();
@@ -156,6 +158,23 @@ export default function DashboardClient({ zones }: DashboardClientProps) {
       form.reset({ ean: "", zoneId: selectedZone?.id, countNumber: selectedCount });
     });
   };
+
+  const groupedStagedScans = useMemo(() => {
+    return stagedScans.reduce((acc, scan) => {
+        const existing = acc.find(s => s.ean === scan.ean);
+        if (existing) {
+            existing.quantity++;
+            existing.lastScannedAt = scan.scannedAt;
+        } else {
+            acc.push({
+                ean: scan.ean,
+                quantity: 1,
+                lastScannedAt: scan.scannedAt
+            });
+        }
+        return acc;
+    }, [] as GroupedScan[]).sort((a,b) => new Date(b.lastScannedAt).getTime() - new Date(a.lastScannedAt).getTime());
+  }, [stagedScans]);
 
   const resetFlow = () => {
       setSelectedZone(null);
@@ -200,16 +219,16 @@ export default function DashboardClient({ zones }: DashboardClientProps) {
     });
   }
 
-  const handleDeleteStagedScan = (index: number) => {
-    const updatedScans = stagedScans.filter((_, i) => i !== index);
+  const handleDeleteStagedScan = (eanToDelete: string) => {
+    const updatedScans = stagedScans.filter((scan) => scan.ean !== eanToDelete);
     setStagedScans(updatedScans);
     const key = getStorageKey();
     if (key) {
         localStorage.setItem(key, JSON.stringify(updatedScans));
     }
     toast({
-        title: "Escaneo eliminado",
-        description: "El escaneo ha sido eliminado de la cola.",
+        title: "Escaneos eliminados",
+        description: `Todos los escaneos para el EAN ${eanToDelete} han sido eliminados de la cola.`,
     });
   };
   
@@ -218,11 +237,11 @@ export default function DashboardClient({ zones }: DashboardClientProps) {
       if (key) {
           localStorage.removeItem(key);
       }
+      setStagedScans([]);
       toast({
           title: "Cola vaciada",
           description: "Todos los escaneos preparados para esta sesión han sido eliminados.",
       });
-      resetFlow();
   };
 
   const handleZoneSelect = (zoneId: string) => {
@@ -384,18 +403,22 @@ export default function DashboardClient({ zones }: DashboardClientProps) {
                 <TableHeader>
                   <TableRow>
                     <TableHead>EAN</TableHead>
-                    <TableHead>Hora</TableHead>
+                    <TableHead>Hora (último)</TableHead>
+                    <TableHead className="text-center">Cantidad</TableHead>
                     <TableHead className="text-right">Acción</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {stagedScans.length > 0 ? (
-                    stagedScans.map((scan, index) => (
-                      <TableRow key={`${scan.ean}-${index}`}>
+                  {groupedStagedScans.length > 0 ? (
+                    groupedStagedScans.map((scan) => (
+                      <TableRow key={scan.ean}>
                         <TableCell className="font-medium">{scan.ean}</TableCell>
-                        <TableCell>{isClient ? format(new Date(scan.scannedAt), "HH:mm:ss") : '...'}</TableCell>
+                        <TableCell>{isClient ? format(new Date(scan.lastScannedAt), "HH:mm:ss") : '...'}</TableCell>
+                        <TableCell className="text-center">
+                            <Badge variant="secondary">{scan.quantity}</Badge>
+                        </TableCell>
                         <TableCell className="text-right">
-                          <Button variant="ghost" size="icon" onClick={() => handleDeleteStagedScan(index)}>
+                          <Button variant="ghost" size="icon" onClick={() => handleDeleteStagedScan(scan.ean)}>
                             <Trash2 className="h-4 w-4 text-destructive" />
                           </Button>
                         </TableCell>
@@ -403,7 +426,7 @@ export default function DashboardClient({ zones }: DashboardClientProps) {
                     ))
                   ) : (
                     <TableRow>
-                      <TableCell colSpan={3} className="text-center h-24">No hay escaneos preparados.</TableCell>
+                      <TableCell colSpan={4} className="text-center h-24">No hay escaneos preparados.</TableCell>
                     </TableRow>
                   )}
                 </TableBody>
@@ -437,3 +460,5 @@ export default function DashboardClient({ zones }: DashboardClientProps) {
     </>
   );
 }
+
+    
