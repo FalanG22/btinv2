@@ -17,7 +17,7 @@ import {
 import { Bar, BarChart, CartesianGrid, XAxis, YAxis, Legend } from "recharts";
 import PageHeader from "@/components/page-header";
 import { getDashboardStats } from "@/lib/actions";
-import { ScanLine, Hash, MapPin, List, Box } from "lucide-react";
+import { ScanLine, Hash, MapPin, Box } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Skeleton } from "@/components/ui/skeleton";
 
@@ -33,7 +33,35 @@ function StatCardSkeleton() {
                 <Skeleton className="h-7 w-1/3" />
             </CardContent>
         </Card>
-    )
+    );
+}
+
+function LoadingDashboard() {
+  return (
+    <div className="flex flex-1 flex-col gap-4 md:gap-8">
+      <PageHeader
+        title="Panel de Control"
+        description="Un resumen de tu actividad de escaneo."
+      />
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+        <StatCardSkeleton />
+        <StatCardSkeleton />
+        <StatCardSkeleton />
+        <StatCardSkeleton />
+      </div>
+      <div className="grid gap-4 md:gap-8 lg:grid-cols-1">
+        <Card>
+          <CardHeader>
+            <Skeleton className="h-6 w-1/4" />
+            <Skeleton className="h-4 w-2/5" />
+          </CardHeader>
+          <CardContent>
+            <Skeleton className="h-[350px] w-full" />
+          </CardContent>
+        </Card>
+      </div>
+    </div>
+  );
 }
 
 export default function DashboardPage() {
@@ -59,31 +87,7 @@ export default function DashboardPage() {
   } satisfies ChartConfig;
 
   if (!stats) {
-    return (
-        <div className="flex flex-1 flex-col gap-4 md:gap-8">
-             <PageHeader
-                title="Panel de Control"
-                description="Un resumen de tu actividad de escaneo."
-            />
-            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-                <StatCardSkeleton />
-                <StatCardSkeleton />
-                <StatCardSkeleton />
-                <StatCardSkeleton />
-            </div>
-            <div className="grid gap-4 md:gap-8 lg:grid-cols-1">
-                <Card>
-                    <CardHeader>
-                        <Skeleton className="h-6 w-1/4" />
-                        <Skeleton className="h-4 w-2/5" />
-                    </CardHeader>
-                    <CardContent>
-                       <Skeleton className="h-[350px] w-full" />
-                    </CardContent>
-                </Card>
-            </div>
-        </div>
-    )
+    return <LoadingDashboard />;
   }
 
   return (
@@ -93,40 +97,40 @@ export default function DashboardPage() {
         description="Un resumen de tu actividad de escaneo."
       />
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        <Card className="bg-gradient-to-br from-purple-500 to-indigo-600 text-primary-foreground">
+        <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Escaneos EAN Hoy</CardTitle>
-            <ScanLine className="h-5 w-5" />
+            <ScanLine className="h-5 w-5 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-bold">{stats.eanScansToday}</div>
+            <div className="text-2xl font-bold">{stats.eanScansToday}</div>
           </CardContent>
         </Card>
-        <Card className="bg-gradient-to-br from-green-400 to-teal-500 text-primary-foreground">
+        <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Escaneos Serie Hoy</CardTitle>
-            <Hash className="h-5 w-5" />
+            <Hash className="h-5 w-5 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-bold">{stats.seriesScansToday}</div>
+            <div className="text-2xl font-bold">{stats.seriesScansToday}</div>
           </CardContent>
         </Card>
-        <Card className="bg-gradient-to-br from-pink-500 to-rose-500 text-primary-foreground">
+        <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Zonas Activas</CardTitle>
-            <MapPin className="h-5 w-5" />
+            <MapPin className="h-5 w-5 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-bold">{stats.activeZones}</div>
+            <div className="text-2xl font-bold">{stats.activeZones}</div>
           </CardContent>
         </Card>
-        <Card className="bg-gradient-to-br from-cyan-400 to-sky-500 text-primary-foreground">
+        <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Total Artículos</CardTitle>
-            <Box className="h-5 w-5" />
+            <Box className="h-5 w-5 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-bold">{stats.totalItems}</div>
+            <div className="text-2xl font-bold">{stats.totalItems}</div>
           </CardContent>
         </Card>
       </div>
@@ -135,7 +139,7 @@ export default function DashboardPage() {
           <CardHeader>
             <CardTitle>Escaneos por Zona y Conteo</CardTitle>
              <CardDescription>Comparación de unidades escaneadas para cada conteo dentro de las zonas.</CardDescription>
-          </Header>
+          </CardHeader>
           <CardContent className="pl-2">
             <ChartContainer config={chartConfig} className="h-[350px] w-full">
               <BarChart
