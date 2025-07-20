@@ -12,9 +12,6 @@ import { Truck, ScanLine, MapPin, List, Hash, LayoutDashboard, ListChecks, Users
 import { cn } from "@/lib/utils";
 import { logout } from "@/lib/actions";
 import { Button } from "../ui/button";
-import { useTransition, useState, useEffect } from "react";
-import { Loader2 } from "lucide-react";
-import { getCurrentUser } from "@/lib/session";
 import type { AuthenticatedUser } from "@/lib/session";
 
 const navItems = [
@@ -29,24 +26,9 @@ const navItems = [
   { href: "/users", icon: Users, label: "Usuarios", roles: ['admin'] },
 ];
 
-export default function Sidebar() {
+export default function Sidebar({ user }: { user: AuthenticatedUser }) {
   const pathname = usePathname();
-  const [user, setUser] = useState<AuthenticatedUser | null>(null);
-
-  useEffect(() => {
-    // We need to fetch the user on the client side for a dynamic sidebar
-    // This avoids issues with server/client state mismatch after login
-    getCurrentUser().then(setUser);
-  }, [pathname]); // Re-fetch on path change to ensure role is up-to-date
   
-  const [isPending, startTransition] = useTransition();
-
-  const handleLogout = () => {
-    startTransition(async () => {
-        await logout();
-    });
-  }
-
   const userRole = user?.role || 'user';
   const accessibleNavItems = navItems.filter(item => item.roles.includes(userRole));
 
@@ -81,21 +63,22 @@ export default function Sidebar() {
           ))}
         </nav>
         <div className="mt-auto flex flex-col items-center gap-4 px-2 sm:py-5">
-          <Tooltip>
-            <TooltipTrigger asChild>
-                <Button
-                    onClick={handleLogout}
-                    disabled={isPending}
-                    size="icon"
-                    variant="ghost"
-                    className="flex h-9 w-9 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:text-foreground md:h-8 md:w-8"
-                >
-                    {isPending ? <Loader2 className="h-5 w-5 animate-spin" /> : <LogOut className="h-5 w-5" />}
-                    <span className="sr-only">Cerrar Sesión</span>
-                </Button>
-            </TooltipTrigger>
-            <TooltipContent side="right">Cerrar Sesión</TooltipContent>
-          </Tooltip>
+            <form action={logout}>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                    <Button
+                        type="submit"
+                        size="icon"
+                        variant="ghost"
+                        className="flex h-9 w-9 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:text-foreground md:h-8 md:w-8"
+                    >
+                        <LogOut className="h-5 w-5" />
+                        <span className="sr-only">Cerrar Sesión</span>
+                    </Button>
+                </TooltipTrigger>
+                <TooltipContent side="right">Cerrar Sesión</TooltipContent>
+              </Tooltip>
+            </form>
         </div>
       </TooltipProvider>
     </aside>
