@@ -18,6 +18,9 @@ export async function middleware(request: NextRequest) {
   const path = request.nextUrl.pathname;
   const isProtectedRoute = protectedRoutes.some(prefix => path.startsWith(prefix));
 
+  const headers = new Headers(request.headers);
+  headers.set('x-pathname', path);
+
   if (isProtectedRoute) {
     const session = await getSession(request);
     if (!session) {
@@ -33,7 +36,11 @@ export async function middleware(request: NextRequest) {
       }
   }
 
-  return NextResponse.next();
+  return NextResponse.next({
+    request: {
+      headers,
+    },
+  });
 }
 
 // See "Matching Paths" below to learn more
