@@ -29,6 +29,7 @@ import {
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { MoreHorizontal, Printer, Trash2 } from "lucide-react";
 import { PrintLabel } from "./print-label";
+import { Badge } from "@/components/ui/badge";
 
 export function ArticlesTable({ data }: { data: ScannedArticle[] }) {
   const [isPending, startTransition] = useTransition();
@@ -58,6 +59,7 @@ export function ArticlesTable({ data }: { data: ScannedArticle[] }) {
               <TableRow>
                 <TableHead>EAN</TableHead>
                 <TableHead>Zone</TableHead>
+                <TableHead>Count</TableHead>
                 <TableHead className="hidden md:table-cell">Scanned By</TableHead>
                 <TableHead className="hidden md:table-cell">Scanned At</TableHead>
                 <TableHead>
@@ -71,6 +73,9 @@ export function ArticlesTable({ data }: { data: ScannedArticle[] }) {
                   <TableRow key={article.id}>
                     <TableCell className="font-medium">{article.ean}</TableCell>
                     <TableCell>{article.zoneName}</TableCell>
+                    <TableCell>
+                        <Badge variant="secondary">C{article.countNumber}</Badge>
+                    </TableCell>
                     <TableCell className="hidden md:table-cell">{article.userId}</TableCell>
                     <TableCell className="hidden md:table-cell">
                       {format(new Date(article.scannedAt), "MMMM d, yyyy 'at' HH:mm")}
@@ -124,7 +129,7 @@ export function ArticlesTable({ data }: { data: ScannedArticle[] }) {
                 ))
               ) : (
                 <TableRow>
-                  <TableCell colSpan={5} className="h-24 text-center">
+                  <TableCell colSpan={6} className="h-24 text-center">
                     No articles found.
                   </TableCell>
                 </TableRow>

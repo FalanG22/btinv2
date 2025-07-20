@@ -34,6 +34,7 @@ export function PrintLabel({ article, children }: PrintLabelProps) {
         <div ref={labelRef} className="label">
           <h3>Product Label</h3>
           <p><strong>Zone:</strong> {article.zoneName}</p>
+          <p><strong>Count:</strong> {article.countNumber}</p>
           <p><strong>Scanned at:</strong> {format(new Date(article.scannedAt), "dd/MM/yyyy HH:mm")}</p>
           <p><strong>User:</strong> {article.userId}</p>
           <div className="ean">{article.ean}</div>

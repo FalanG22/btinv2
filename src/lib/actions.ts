@@ -77,9 +77,11 @@ export async function getScannedArticles(): Promise<ScannedArticle[]> {
   return getDbScannedArticles().sort((a, b) => new Date(b.scannedAt).getTime() - new Date(a.scannedAt).getTime());
 }
 
-export async function getRecentScans(limit: number): Promise<ScannedArticle[]> {
+export async function getRecentScans(zoneId: string, countNumber: number, limit: number): Promise<ScannedArticle[]> {
   const articles = await getScannedArticles();
-  return articles.slice(0, limit);
+  return articles
+    .filter(a => a.zoneId === zoneId && a.countNumber === countNumber)
+    .slice(0, limit);
 }
 
 export async function addScan(data: z.infer<typeof scanSchema>) {
@@ -89,7 +91,7 @@ export async function addScan(data: z.infer<typeof scanSchema>) {
     return { error: "Invalid data provided." };
   }
   
-  const { ean, zoneId } = validatedFields.data;
+  const { ean, zoneId, countNumber } = validatedFields.data;
   const zones = getDbZones();
   const zone = zones.find(z => z.id === zoneId);
 
@@ -104,6 +106,7 @@ export async function addScan(data: z.infer<typeof scanSchema>) {
     zoneName: zone.name,
     scannedAt: new Date().toISOString(),
     userId: `user-${Math.ceil(Math.random() * 3)}`, // Simulate a random user
+    countNumber,
   };
 
   let articles = getDbScannedArticles();

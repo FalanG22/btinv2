@@ -9,4 +9,5 @@ export const zoneSchema = z.object({
 export const scanSchema = z.object({
   ean: z.string().regex(/^\d{8,13}$/, { message: "Enter a valid 8 to 13-digit EAN code." }),
   zoneId: z.string({ required_error: "Please select a zone." }).min(1, { message: "Please select a zone." }),
+  countNumber: z.number({ required_error: "Please select a count." }).min(1).max(3),
 });
