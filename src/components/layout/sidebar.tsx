@@ -8,11 +8,11 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { Truck, ScanLine, MapPin, List, Hash, LayoutDashboard, ListChecks, Users, Package, BarChartHorizontal } from "lucide-react";
+import { Truck, ScanLine, MapPin, List, Hash, LayoutDashboard, ListChecks, Users, Package, BarChartHorizontal, LogOut } from "lucide-react";
 import { cn } from "@/lib/utils";
-
-// In a real app, you'd get this from a session hook
-const userRole = 'admin'; 
+import { type AuthenticatedUser } from "@/lib/session";
+import { logout } from "@/lib/actions";
+import { Button } from "../ui/button";
 
 const navItems = [
   { href: "/dashboard", icon: LayoutDashboard, label: "Panel", roles: ['admin', 'user'] },
@@ -26,8 +26,9 @@ const navItems = [
   { href: "/users", icon: Users, label: "Usuarios", roles: ['admin'] },
 ];
 
-export default function Sidebar() {
+export default function Sidebar({ user }: { user: AuthenticatedUser | null }) {
   const pathname = usePathname();
+  const userRole = user?.role || 'user';
 
   const accessibleNavItems = navItems.filter(item => item.roles.includes(userRole));
 
@@ -61,6 +62,24 @@ export default function Sidebar() {
             </Tooltip>
           ))}
         </nav>
+         <div className="mt-auto flex flex-col items-center gap-4 px-2 sm:py-5">
+          <Tooltip>
+            <TooltipTrigger asChild>
+                <form action={logout}>
+                    <Button
+                        type="submit"
+                        size="icon"
+                        variant="ghost"
+                        className="flex h-9 w-9 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:text-foreground md:h-8 md:w-8"
+                    >
+                        <LogOut className="h-5 w-5" />
+                        <span className="sr-only">Cerrar Sesión</span>
+                    </Button>
+              </form>
+            </TooltipTrigger>
+            <TooltipContent side="right">Cerrar Sesión</TooltipContent>
+          </Tooltip>
+        </div>
       </TooltipProvider>
     </aside>
   );

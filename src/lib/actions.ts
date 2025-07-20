@@ -4,37 +4,68 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { getDbScannedArticles, getDbZones, setDbScannedArticles, setDbZones, type ScannedArticle, type Zone, getDbProducts, getDbUsers, getDbCompanies, setDbUsers, type User, type Company } from "./data";
 import { scanSchema, zoneSchema, scanBatchSchema, serialBatchSchema, zoneBuilderSchema, userSchema } from "./schemas";
+import { createSession, deleteSession, getCurrentUser } from "./session";
+import { redirect } from "next/navigation";
 
-// --- Helper Functions ---
-const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+// --- Authentication Actions ---
 
-// For this demo, we assume a user is logged in.
-// In a real app, you would get this from the user's session.
-const session = {
-    user: {
-      id: 'user-admin',
-      role: 'admin',
-      companyId: 'company-sc'
+export async function login(
+  prevState: { error: string } | undefined,
+  formData: FormData,
+) {
+    const email = formData.get('email') as string;
+    const password = formData.get('password') as string;
+
+    if (!email || !password) {
+        return { error: 'Email y contraseña son requeridos.' };
     }
-};
+
+    const users = getDbUsers();
+    const user = users.find(u => u.email === email);
+
+    // NOTE: In a real app, you would use a secure password hashing and comparison library like bcrypt.
+    // For this demo, we are just checking against a plain text password.
+    if (!user || user.password !== password) {
+        return { error: 'Credenciales inválidas.' };
+    }
+
+    await createSession(user.id);
+    redirect('/dashboard');
+}
+
+export async function logout() {
+    await deleteSession();
+    redirect('/login');
+}
+
 
 // --- User Actions ---
 export async function getUsers(): Promise<User[]> {
-  await delay(50);
+  const session = await getCurrentUser();
+  if (!session) return [];
+
   // An admin can only see users from their own company.
-  // Exception made on the page to allow superadmin to see all companies for user creation.
-  return getDbUsers().filter(u => u.companyId === session.user.companyId);
+  return getDbUsers().filter(u => u.companyId === session.companyId);
 }
 
 export async function deleteUser(userId: string) {
+    const session = await getCurrentUser();
+    if (!session || session.role !== 'admin') {
+        return { error: "No autorizado." };
+    }
+
     if (userId === 'user-admin' || userId === 'user-admin-bt') {
         return { error: "No se puede eliminar el usuario administrador por defecto." };
     }
     let users = getDbUsers();
     const userToDelete = users.find(u => u.id === userId);
 
+    if (!userToDelete) {
+        return { error: "Usuario no encontrado." };
+    }
+
     // Security check: ensure admin can only delete users from their own company
-    if (userToDelete?.companyId !== session.user.companyId) {
+    if (userToDelete.companyId !== session.companyId) {
         return { error: "No tienes permiso para eliminar este usuario." };
     }
 
@@ -44,6 +75,11 @@ export async function deleteUser(userId: string) {
 }
 
 export async function createUser(data: z.infer<typeof userSchema>) {
+    const session = await getCurrentUser();
+    if (!session || session.role !== 'admin') {
+        return { error: "No autorizado." };
+    }
+
     const validatedFields = userSchema.safeParse(data);
     if (!validatedFields.success) {
         return { error: "Datos proporcionados no válidos." };
@@ -54,6 +90,10 @@ export async function createUser(data: z.infer<typeof userSchema>) {
     if (users.some(u => u.email === email)) {
         return { error: "Ya existe un usuario con este correo electrónico." };
     }
+    
+    // In a real app, the companyId should be validated against the admin's own company,
+    // unless they are a super-admin. Here we allow it for demo purposes.
+
     const newUser: User = {
         id: `user-${Date.now()}`,
         name,
@@ -62,14 +102,20 @@ export async function createUser(data: z.infer<typeof userSchema>) {
         role,
         createdAt: new Date().toISOString(),
         // In a real app, you would hash the password here before saving
+        password: password || 'password123' // fallback for demo
     };
-    console.log(`Creando usuario con contraseña: ${password}`);
+    
     setDbUsers([newUser, ...users]);
     revalidatePath("/users");
     return { success: `Usuario "${name}" creado con éxito.` };
 }
 
 export async function updateUser(data: z.infer<typeof userSchema>) {
+    const session = await getCurrentUser();
+    if (!session || session.role !== 'admin') {
+        return { error: "No autorizado." };
+    }
+
     const validatedFields = userSchema.safeParse(data);
     if (!validatedFields.success || !validatedFields.data.id) {
         return { error: "Datos proporcionados no válidos." };
@@ -83,7 +129,7 @@ export async function updateUser(data: z.infer<typeof userSchema>) {
     }
 
     // Security check: ensure admin can only update users in their own company
-    if (users[userIndex].companyId !== session.user.companyId) {
+    if (users[userIndex].companyId !== session.companyId) {
          return { error: "No tienes permiso para actualizar este usuario." };
     }
 
@@ -95,8 +141,8 @@ export async function updateUser(data: z.infer<typeof userSchema>) {
     users[userIndex] = { ...users[userIndex], name, email, companyId, role };
 
     if (password) {
-      console.log(`Actualizando contraseña para el usuario ${email} a: ${password}`);
       // In a real app, you would hash the new password here
+      users[userIndex].password = password;
     }
 
     setDbUsers(users);
@@ -107,7 +153,8 @@ export async function updateUser(data: z.infer<typeof userSchema>) {
 
 // --- Company Actions ---
 export async function getCompanies(): Promise<Company[]> {
-    await delay(50);
+    const session = await getCurrentUser();
+    if (!session) return [];
     // In this demo, an admin can see all companies to assign users,
     // but in a strict multi-tenant system, this might be restricted.
     return getDbCompanies();
@@ -117,14 +164,19 @@ export async function getCompanies(): Promise<Company[]> {
 // --- Zone Actions ---
 
 export async function getZones(): Promise<Zone[]> {
-  await delay(50); 
-  // Filter zones by the logged-in user's company
-  return getDbZones()
-    .filter(z => z.companyId === session.user.companyId)
-    .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+    const session = await getCurrentUser();
+    if (!session) return [];
+    
+    // Filter zones by the logged-in user's company
+    return getDbZones()
+        .filter(z => z.companyId === session.companyId)
+        .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
 }
 
 export async function addZonesBatch(data: z.infer<typeof zoneBuilderSchema>) {
+    const session = await getCurrentUser();
+    if (!session) return { error: "No autorizado." };
+    
     const validatedFields = zoneBuilderSchema.safeParse(data);
 
     if (!validatedFields.success) {
@@ -134,7 +186,7 @@ export async function addZonesBatch(data: z.infer<typeof zoneBuilderSchema>) {
     const { streetPrefix, streetFrom, streetTo, rackPrefix, rackFrom, rackTo } = validatedFields.data;
     const zones = getDbZones();
     const newZones: Zone[] = [];
-    const companyId = session.user.companyId; 
+    const companyId = session.companyId; 
 
     for (let s = streetFrom; s <= streetTo; s++) {
         for (let r = rackFrom; r <= rackTo; r++) {
@@ -168,6 +220,9 @@ export async function addZonesBatch(data: z.infer<typeof zoneBuilderSchema>) {
 
 
 export async function updateZone(data: z.infer<typeof zoneSchema>) {
+  const session = await getCurrentUser();
+  if (!session) return { error: "No autorizado." };
+
   const validatedFields = zoneSchema.safeParse(data);
 
   if (!validatedFields.success || !validatedFields.data.id) {
@@ -183,7 +238,7 @@ export async function updateZone(data: z.infer<typeof zoneSchema>) {
   }
 
   // Security check: ensure user has permission for this zone's company
-  if (zones[zoneIndex].companyId !== session.user.companyId) {
+  if (zones[zoneIndex].companyId !== session.companyId) {
       return { error: "No tienes permiso para actualizar esta zona." };
   }
 
@@ -198,11 +253,14 @@ export async function updateZone(data: z.infer<typeof zoneSchema>) {
 }
 
 export async function deleteZone(zoneId: string) {
+  const session = await getCurrentUser();
+  if (!session) return { error: "No autorizado." };
+
   let zones = getDbZones();
   const zone = zones.find(z => z.id === zoneId);
 
   // Security check
-  if (!zone || zone.companyId !== session.user.companyId) {
+  if (!zone || zone.companyId !== session.companyId) {
       return { error: "No tienes permiso para eliminar esta zona." };
   }
   
@@ -219,9 +277,11 @@ export async function deleteZone(zoneId: string) {
 // --- Article Scan Actions ---
 
 export async function getScannedArticles(): Promise<ScannedArticle[]> {
-  await delay(50);
-  const articles = getDbScannedArticles().filter(a => a.companyId === session.user.companyId);
-  const zones = getDbZones().filter(z => z.companyId === session.user.companyId);
+  const session = await getCurrentUser();
+  if (!session) return [];
+  
+  const articles = getDbScannedArticles().filter(a => a.companyId === session.companyId);
+  const zones = getDbZones().filter(z => z.companyId === session.companyId);
   
   return articles
     .map(article => ({
@@ -232,14 +292,17 @@ export async function getScannedArticles(): Promise<ScannedArticle[]> {
 }
 
 export async function addScansBatch(scans: z.infer<typeof scanBatchSchema>) {
+    const session = await getCurrentUser();
+    if (!session) return { error: "No autorizado." };
+    
     const validatedFields = scanBatchSchema.safeParse(scans);
 
     if (!validatedFields.success) {
         return { error: "Datos de lote no válidos." };
     }
     
-    const companyId = session.user.companyId; 
-    const userId = session.user.id;
+    const companyId = session.companyId; 
+    const userId = session.id;
 
 
     const zones = getDbZones();
@@ -247,8 +310,7 @@ export async function addScansBatch(scans: z.infer<typeof scanBatchSchema>) {
     const products = getDbProducts();
 
     const newScans: ScannedArticle[] = validatedFields.data.map((scan, index) => {
-        const zone = zones.find(z => z.id === scan.zoneId);
-        // Security check for zone ownership can be added here
+        const zone = zones.find(z => z.id === scan.zoneId && z.companyId === companyId);
         const productInfo = products.find(p => p.code === scan.ean);
         return {
             id: `scan-batch-${Date.now()}-${index}`,
@@ -275,11 +337,14 @@ export async function addScansBatch(scans: z.infer<typeof scanBatchSchema>) {
 }
 
 export async function deleteScan(scanId: string) {
+  const session = await getCurrentUser();
+  if (!session) return { error: "No autorizado." };
+
   let articles = getDbScannedArticles();
   const scan = articles.find(a => a.id === scanId);
 
   // Security check
-  if (!scan || scan.companyId !== session.user.companyId) {
+  if (!scan || scan.companyId !== session.companyId) {
       return { error: "No tienes permiso para eliminar este escaneo." };
   }
 
@@ -295,6 +360,9 @@ export async function deleteScan(scanId: string) {
 }
 
 export async function addSerialsBatch(serials: string[], zoneId: string, countNumber: number) {
+    const session = await getCurrentUser();
+    if (!session) return { error: "No autorizado." };
+
     const validatedFields = serialBatchSchema.safeParse({ serials, zoneId, countNumber });
      if (!validatedFields.success) {
         return { error: "Datos de lote de series no válidos." };
@@ -305,8 +373,8 @@ export async function addSerialsBatch(serials: string[], zoneId: string, countNu
     const zone = zones.find(z => z.id === zoneId);
     const products = getDbProducts();
     
-    const companyId = session.user.companyId; 
-    const userId = session.user.id;
+    const companyId = session.companyId; 
+    const userId = session.id;
 
     if (!zone || zone.companyId !== companyId) {
         return { error: "Zona seleccionada no encontrada o no tienes permiso." };
@@ -341,8 +409,14 @@ export async function addSerialsBatch(serials: string[], zoneId: string, countNu
 // --- Dashboard & Report Actions ---
 
 export async function getDashboardStats() {
-    await delay(100);
-    const companyId = session.user.companyId;
+    const session = await getCurrentUser();
+    if (!session) {
+        return {
+            eanScansToday: 0, seriesScansToday: 0, activeZones: 0,
+            totalItems: 0, chartData: []
+        };
+    }
+    const companyId = session.companyId;
     const scans = getDbScannedArticles().filter(s => s.companyId === companyId);
     const zones = getDbZones().filter(z => z.companyId === companyId);
 
@@ -395,8 +469,10 @@ export type CountsReportItem = {
 }
 
 export async function getCountsReport(): Promise<CountsReportItem[]> {
-    await delay(50);
-    const companyId = session.user.companyId;
+    const session = await getCurrentUser();
+    if (!session) return [];
+
+    const companyId = session.companyId;
     const scans = getDbScannedArticles().filter(s => s.companyId === companyId);
     const products = getDbProducts();
     const users = getDbUsers(); // Get all users to find names by ID
@@ -448,8 +524,10 @@ export type SkuSummaryItem = {
 };
 
 export async function getSkuSummary(): Promise<SkuSummaryItem[]> {
-    await delay(50);
-    const companyId = session.user.companyId;
+    const session = await getCurrentUser();
+    if (!session) return [];
+
+    const companyId = session.companyId;
     const scans = getDbScannedArticles().filter(s => s.companyId === companyId);
 
     const summaryMap = scans.reduce((acc, scan) => {
@@ -490,8 +568,10 @@ export type ZoneSummaryItem = {
 };
 
 export async function getZoneSummary(): Promise<ZoneSummaryItem[]> {
-    await delay(50);
-    const companyId = session.user.companyId;
+    const session = await getCurrentUser();
+    if (!session) return [];
+    
+    const companyId = session.companyId;
     const scans = getDbScannedArticles().filter(s => s.companyId === companyId);
 
     const summaryMap = scans.reduce((acc, scan) => {

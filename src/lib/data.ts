@@ -11,7 +11,10 @@ export type User = {
     role: 'admin' | 'user';
     companyId: string;
     createdAt: string;
-}
+    // For this demo, we'll store the password in plain text.
+    // In a real app, this should be a secure hash.
+    password?: string; 
+};
 
 export type Zone = {
   id: string;
@@ -49,10 +52,10 @@ let companies: Company[] = [
 ];
 
 let users: User[] = [
-    { id: 'user-admin', name: 'Admin SC', email: 'admin@sommiercenter.com', role: 'admin', companyId: 'company-sc', createdAt: new Date().toISOString() },
-    { id: 'user-1', name: 'Alice Smith', email: 'alice@sommiercenter.com', role: 'user', companyId: 'company-sc', createdAt: new Date().toISOString() },
-    { id: 'user-2', name: 'Bob Johnson', email: 'bob@bedtime.com', role: 'user', companyId: 'company-bt', createdAt: new Date().toISOString() },
-    { id: 'user-admin-bt', name: 'Admin BT', email: 'admin@bedtime.com', role: 'admin', companyId: 'company-bt', createdAt: new Date().toISOString() },
+    { id: 'user-admin', name: 'Admin SC', email: 'admin@sommiercenter.com', role: 'admin', companyId: 'company-sc', createdAt: new Date().toISOString(), password: 'password123' },
+    { id: 'user-1', name: 'Alice Smith', email: 'alice@sommiercenter.com', role: 'user', companyId: 'company-sc', createdAt: new Date().toISOString(), password: 'password123' },
+    { id: 'user-2', name: 'Bob Johnson', email: 'bob@bedtime.com', role: 'user', companyId: 'company-bt', createdAt: new Date().toISOString(), password: 'password123' },
+    { id: 'user-admin-bt', name: 'Admin BT', email: 'admin@bedtime.com', role: 'admin', companyId: 'company-bt', createdAt: new Date().toISOString(), password: 'password123' },
 ];
 
 // Master Product List
