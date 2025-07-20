@@ -314,8 +314,12 @@ export async function validateEan(ean: string): Promise<{ exists: boolean; isSer
   const product = products.find(p => p.code === ean);
   const exists = !!product;
   
-  // A simple heuristic to determine if it's a serial number
-  const isSerial = exists ? /^[a-zA-Z]/.test(product.code) : false;
+  let isSerial = true; // Assume it's a serial by default
+  if (exists) {
+    // An EAN starts with '779' and has 13 digits. Everything else is a serial.
+    const isEan = product.code.startsWith('779') && product.code.length === 13;
+    isSerial = !isEan;
+  }
   
   return { exists, isSerial };
 }
