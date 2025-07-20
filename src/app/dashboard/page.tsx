@@ -10,8 +10,9 @@ import {
   ChartContainer,
   ChartTooltip,
   ChartTooltipContent,
+  ChartConfig,
 } from "@/components/ui/chart";
-import { Bar, BarChart, CartesianGrid, XAxis, YAxis } from "recharts";
+import { Bar, BarChart, CartesianGrid, XAxis, YAxis, Legend } from "recharts";
 import PageHeader from "@/components/page-header";
 import { getDashboardStats } from "@/lib/actions";
 import { ScanLine, Hash, MapPin, List } from "lucide-react";
@@ -27,11 +28,19 @@ export default function DashboardPage() {
   }, []);
 
   const chartConfig = {
-    total: {
-      label: "Total Scans",
+    count1: {
+      label: "Count 1",
       color: "hsl(var(--primary))",
     },
-  };
+    count2: {
+      label: "Count 2",
+      color: "hsl(var(--accent))",
+    },
+    count3: {
+      label: "Count 3",
+      color: "hsl(var(--secondary))",
+    },
+  } satisfies ChartConfig;
 
   if (!stats) {
     return (
@@ -94,7 +103,8 @@ export default function DashboardPage() {
       <div className="grid gap-4 md:gap-8 lg:grid-cols-1">
         <Card>
           <CardHeader>
-            <CardTitle>Scans by Zone</CardTitle>
+            <CardTitle>Scans by Zone and Count</CardTitle>
+             <CardDescription>Comparison of scanned units for each count within the zones.</CardDescription>
           </CardHeader>
           <CardContent className="pl-2">
             <ChartContainer config={chartConfig} className="h-[350px] w-full">
@@ -118,12 +128,23 @@ export default function DashboardPage() {
                  />
                 <ChartTooltip
                   cursor={false}
-                  content={<ChartTooltipContent hideLabel />}
+                  content={<ChartTooltipContent />}
                 />
+                <Legend />
                 <Bar
-                  dataKey="total"
-                  fill="var(--color-total)"
-                  radius={8}
+                  dataKey="count1"
+                  fill="var(--color-count1)"
+                  radius={[4, 4, 0, 0]}
+                />
+                 <Bar
+                  dataKey="count2"
+                  fill="var(--color-count2)"
+                  radius={[4, 4, 0, 0]}
+                />
+                 <Bar
+                  dataKey="count3"
+                  fill="var(--color-count3)"
+                  radius={[4, 4, 0, 0]}
                 />
               </BarChart>
             </ChartContainer>

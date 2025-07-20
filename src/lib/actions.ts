@@ -171,15 +171,22 @@ export async function getDashboardStats() {
     const activeZones = zones.length;
     const totalItems = scans.length;
 
-    const scansByZone = scans.reduce((acc, scan) => {
-        acc[scan.zoneName] = (acc[scan.zoneName] || 0) + 1;
+    const scansByZoneAndCount = scans.reduce((acc, scan) => {
+        const zoneName = scan.zoneName;
+        if (!acc[zoneName]) {
+            acc[zoneName] = { name: zoneName, count1: 0, count2: 0, count3: 0 };
+        }
+        if (scan.countNumber === 1) {
+            acc[zoneName].count1 += 1;
+        } else if (scan.countNumber === 2) {
+            acc[zoneName].count2 += 1;
+        } else if (scan.countNumber === 3) {
+            acc[zoneName].count3 += 1;
+        }
         return acc;
-    }, {} as Record<string, number>);
+    }, {} as Record<string, { name: string; count1: number; count2: number; count3: number }>);
 
-    const chartData = Object.entries(scansByZone).map(([name, value]) => ({
-        name,
-        total: value,
-    }));
+    const chartData = Object.values(scansByZoneAndCount);
 
     return {
         eanScansToday,
