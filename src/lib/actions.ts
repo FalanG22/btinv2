@@ -343,6 +343,29 @@ export async function deleteScan(scanId: string) {
   return { success: "Registro de escaneo eliminado con éxito." };
 }
 
+export async function deleteAllScans() {
+    const session = await getCurrentUser();
+    if (!session) return { error: "No autorizado." };
+
+    const companyId = session.companyId;
+    let allScans = getDbScannedArticles();
+    
+    const scansForOtherCompanies = allScans.filter(a => a.companyId !== companyId);
+    
+    setDbScannedArticles(scansForOtherCompanies);
+
+    revalidatePath("/articles");
+    revalidatePath("/ean");
+    revalidatePath("/serials");
+    revalidatePath("/dashboard");
+    revalidatePath("/report");
+    revalidatePath("/sku-summary");
+    revalidatePath("/zone-summary");
+
+    return { success: "Todos los artículos escaneados para tu empresa han sido eliminados." };
+}
+
+
 export async function addSerialsBatch(serials: string[], zoneId: string, countNumber: number) {
     const session = await getCurrentUser();
     if (!session) return { error: "No autorizado." };

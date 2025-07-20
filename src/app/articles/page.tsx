@@ -3,6 +3,7 @@ import { getScannedArticles } from "@/lib/actions";
 import { CsvUpload } from "./csv-upload";
 import { ArticlesTable } from "./articles-table";
 import { CsvInfoDialog } from "./csv-info-dialog";
+import { DeleteAllButton } from "./delete-all-button";
 
 export default async function ArticlesPage() {
     const articles = await getScannedArticles();
@@ -16,6 +17,7 @@ export default async function ArticlesPage() {
                 <div className="flex items-center gap-2">
                     <CsvUpload />
                     <CsvInfoDialog />
+                    <DeleteAllButton disabled={articles.length === 0} />
                 </div>
             </PageHeader>
 
