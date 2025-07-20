@@ -19,7 +19,6 @@ import {
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
 import { Loader2 } from "lucide-react";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { useToast } from "@/hooks/use-toast";
 
 const loginSchema = z.object({
@@ -37,9 +36,9 @@ export default function LoginForm() {
             email: "admin@sommiercenter.com",
             password: "password123",
         },
-        context: state,
     });
 
+    // Since this is a simplified login, we can show a toast if there was a (hypothetical) error.
     useEffect(() => {
         if (state?.error) {
             toast({

@@ -1,8 +1,6 @@
-
-"use client";
+"use server";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
 import {
   Tooltip,
   TooltipContent,
@@ -14,6 +12,7 @@ import { cn } from "@/lib/utils";
 import { logout } from "@/lib/actions";
 import { Button } from "../ui/button";
 import type { AuthenticatedUser } from "@/lib/session";
+import { headers } from "next/headers";
 
 const navItems = [
   { href: "/dashboard", icon: LayoutDashboard, label: "Panel", roles: ['admin', 'user'] },
@@ -27,15 +26,11 @@ const navItems = [
   { href: "/users", icon: Users, label: "Usuarios", roles: ['admin'] },
 ];
 
-export default function Sidebar({ user }: { user: AuthenticatedUser }) {
-  const pathname = usePathname();
+export default async function Sidebar({ user }: { user: AuthenticatedUser }) {
+  const pathname = headers().get('next-url') || '';
   
   const userRole = user?.role || 'user';
   const accessibleNavItems = navItems.filter(item => item.roles.includes(userRole));
-
-  const handleLogout = async () => {
-    await logout();
-  }
 
   return (
     <aside className="fixed inset-y-0 left-0 z-10 hidden w-14 flex-col border-r bg-background sm:flex">
@@ -68,20 +63,22 @@ export default function Sidebar({ user }: { user: AuthenticatedUser }) {
           ))}
         </nav>
         <div className="mt-auto flex flex-col items-center gap-4 px-2 sm:py-5">
-            <Tooltip>
-              <TooltipTrigger asChild>
-                  <Button
-                      onClick={handleLogout}
-                      size="icon"
-                      variant="ghost"
-                      className="flex h-9 w-9 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:text-foreground md:h-8 md:w-8"
-                  >
-                      <LogOut className="h-5 w-5" />
-                      <span className="sr-only">Cerrar Sesión</span>
-                  </Button>
-              </TooltipTrigger>
-              <TooltipContent side="right">Cerrar Sesión</TooltipContent>
-            </Tooltip>
+            <form action={logout}>
+                <Tooltip>
+                <TooltipTrigger asChild>
+                    <Button
+                        type="submit"
+                        size="icon"
+                        variant="ghost"
+                        className="flex h-9 w-9 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:text-foreground md:h-8 md:w-8"
+                    >
+                        <LogOut className="h-5 w-5" />
+                        <span className="sr-only">Cerrar Sesión</span>
+                    </Button>
+                </TooltipTrigger>
+                <TooltipContent side="right">Cerrar Sesión</TooltipContent>
+                </Tooltip>
+            </form>
         </div>
       </TooltipProvider>
     </aside>

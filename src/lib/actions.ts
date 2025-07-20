@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { getDbScannedArticles, getDbZones, setDbScannedArticles, setDbZones, type ScannedArticle, type Zone, getDbProducts, getDbUsers, getDbCompanies, setDbUsers, type User, type Company } from "./data";
 import { scanSchema, zoneSchema, scanBatchSchema, serialBatchSchema, zoneBuilderSchema, userSchema } from "./schemas";
-import { createSession, deleteSession, getCurrentUser } from "./session";
+import { getCurrentUser } from "./session";
 import { redirect } from "next/navigation";
 
 // --- Authentication Actions ---
@@ -13,28 +13,12 @@ export async function login(
   prevState: { error: string } | undefined,
   formData: FormData,
 ) {
-    const email = formData.get('email') as string;
-    const password = formData.get('password') as string;
-
-    if (!email || !password) {
-        return { error: 'Email y contraseña son requeridos.' };
-    }
-
-    const users = getDbUsers();
-    const user = users.find(u => u.email === email);
-
-    // NOTE: In a real app, you would use a secure password hashing and comparison library like bcrypt.
-    // For this demo, we are just checking against a plain text password.
-    if (!user || user.password !== password) {
-        return { error: 'Credenciales inválidas.' };
-    }
-
-    await createSession(user.id);
+    // This is now a dummy login that just redirects.
     redirect('/dashboard');
 }
 
 export async function logout() {
-    await deleteSession();
+    // This is now a dummy logout that just redirects.
     redirect('/login');
 }
 

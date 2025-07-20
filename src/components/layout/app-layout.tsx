@@ -3,17 +3,16 @@
 import type { ReactNode } from 'react';
 import Sidebar from '@/components/layout/sidebar';
 import { getCurrentUser } from '@/lib/session';
-import type { AuthenticatedUser } from '@/lib/session';
-import { redirect } from 'next/navigation';
 
 export default async function AppLayout({ children }: { children: ReactNode }) {
   const user = await getCurrentUser();
   
-  // This is a safeguard. The middleware should already handle redirection.
-  // If for any reason this server component renders without a user,
-  // we redirect to login to prevent errors.
+  // This layout will now be used for all authenticated pages.
+  // The logic to show/hide it is handled by page-level layouts.
   if (!user) {
-    redirect('/login');
+    // In our simplified setup, this should never happen,
+    // but it's a good safeguard.
+    return <>{children}</>;
   }
 
   return (
