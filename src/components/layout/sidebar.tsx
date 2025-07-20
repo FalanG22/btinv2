@@ -13,6 +13,9 @@ import { cn } from "@/lib/utils";
 import { type AuthenticatedUser } from "@/lib/session";
 import { logout } from "@/lib/actions";
 import { Button } from "../ui/button";
+import { useEffect, useState } from "react";
+import { getCurrentUser } from "@/lib/session";
+import { Skeleton } from "../ui/skeleton";
 
 const navItems = [
   { href: "/dashboard", icon: LayoutDashboard, label: "Panel", roles: ['admin', 'user'] },
@@ -26,11 +29,37 @@ const navItems = [
   { href: "/users", icon: Users, label: "Usuarios", roles: ['admin'] },
 ];
 
-export default function Sidebar({ user }: { user: AuthenticatedUser | null }) {
+export default function Sidebar() {
   const pathname = usePathname();
+  const [user, setUser] = useState<AuthenticatedUser | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    getCurrentUser().then(userData => {
+      setUser(userData);
+      setLoading(false);
+    });
+  }, []);
+  
   const userRole = user?.role || 'user';
 
   const accessibleNavItems = navItems.filter(item => item.roles.includes(userRole));
+  
+  if (loading) {
+    return (
+        <aside className="fixed inset-y-0 left-0 z-10 hidden w-14 flex-col border-r bg-background sm:flex">
+            <nav className="flex flex-col items-center gap-4 px-2 sm:py-5">
+                <Skeleton className="h-8 w-8 rounded-full" />
+                {[...Array(8)].map((_, i) => (
+                    <Skeleton key={i} className="h-8 w-8 rounded-lg" />
+                ))}
+            </nav>
+            <div className="mt-auto flex flex-col items-center gap-4 px-2 sm:py-5">
+                <Skeleton className="h-8 w-8 rounded-lg" />
+            </div>
+        </aside>
+    );
+  }
 
   return (
     <aside className="fixed inset-y-0 left-0 z-10 hidden w-14 flex-col border-r bg-background sm:flex">
