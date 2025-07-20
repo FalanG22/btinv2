@@ -1,10 +1,5 @@
-import { getZones } from "@/lib/actions";
-import DashboardClient from "./dashboard-client";
+import { redirect } from "next/navigation";
 
-export default async function Home() {
-  const zones = await getZones();
-
-  return (
-    <DashboardClient zones={zones} />
-  );
+export default function Home() {
+  redirect('/dashboard');
 }

@@ -34,6 +34,7 @@ export async function addZone(data: z.infer<typeof zoneSchema>) {
   setDbZones([newZone, ...zones]);
   revalidatePath("/zones");
   revalidatePath("/");
+  revalidatePath("/dashboard");
   return { success: `Zone "${name}" created successfully.` };
 }
 
@@ -57,6 +58,7 @@ export async function updateZone(data: z.infer<typeof zoneSchema>) {
 
   revalidatePath("/zones");
   revalidatePath("/");
+  revalidatePath("/dashboard");
   return { success: `Zone "${name}" updated successfully.` };
 }
 
@@ -67,6 +69,7 @@ export async function deleteZone(zoneId: string) {
   
   revalidatePath("/zones");
   revalidatePath("/");
+  revalidatePath("/dashboard");
   return { success: `Zone "${zoneName}" deleted successfully.` };
 }
 
@@ -75,55 +78,6 @@ export async function deleteZone(zoneId: string) {
 export async function getScannedArticles(): Promise<ScannedArticle[]> {
   await delay(50);
   return getDbScannedArticles().sort((a, b) => new Date(b.scannedAt).getTime() - new Date(a.scannedAt).getTime());
-}
-
-export async function getRecentScans(zoneId: string, countNumber: number, limit: number): Promise<ScannedArticle[]> {
-  const articles = await getScannedArticles();
-  return articles
-    .filter(a => a.zoneId === zoneId && a.countNumber === countNumber)
-    .slice(0, limit);
-}
-
-export async function addScan(data: z.infer<typeof scanSchema>) {
-  const validatedFields = scanSchema.safeParse(data);
-
-  if (!validatedFields.success) {
-    return { error: "Invalid data provided." };
-  }
-  
-  const { ean, zoneId, countNumber } = validatedFields.data;
-  const zones = getDbZones();
-  const zone = zones.find(z => z.id === zoneId);
-
-  if (!zone) {
-    return { error: "Selected zone not found." };
-  }
-
-  const newScan: ScannedArticle = {
-    id: `scan-${Date.now()}`,
-    ean,
-    zoneId,
-    zoneName: zone.name,
-    scannedAt: new Date().toISOString(),
-    userId: `user-${Math.ceil(Math.random() * 3)}`, // Simulate a random user
-    countNumber,
-  };
-
-  let articles = getDbScannedArticles();
-  setDbScannedArticles([newScan, ...articles]);
-
-  revalidatePath("/");
-  revalidatePath("/articles");
-  return { success: `Article ${ean} scanned in zone "${zone.name}".`, newScan };
-}
-
-export async function deleteScan(scanId: string) {
-  let articles = getDbScannedArticles();
-  setDbScannedArticles(articles.filter(a => a.id !== scanId));
-
-  revalidatePath("/articles");
-  revalidatePath("/");
-  return { success: "Scan record deleted successfully." };
 }
 
 export async function addScansBatch(scans: z.infer<typeof scanBatchSchema>) {
@@ -146,18 +100,30 @@ export async function addScansBatch(scans: z.infer<typeof scanBatchSchema>) {
             scannedAt: scan.scannedAt,
             userId: `user-batch-${Math.ceil(Math.random() * 3)}`,
             countNumber: scan.countNumber,
+            isSerial: false,
         };
     });
 
     setDbScannedArticles([...newScans, ...allArticles]);
     revalidatePath("/");
+    revalidatePath("/ean");
     revalidatePath("/articles");
+    revalidatePath("/dashboard");
     return { success: `Successfully uploaded ${newScans.length} scans.` };
 }
 
+export async function deleteScan(scanId: string) {
+  let articles = getDbScannedArticles();
+  setDbScannedArticles(articles.filter(a => a.id !== scanId));
+
+  revalidatePath("/articles");
+  revalidatePath("/");
+  revalidatePath("/ean");
+  revalidatePath("/dashboard");
+  return { success: "Scan record deleted successfully." };
+}
+
 export async function addSerialsBatch(serials: string[], zoneId: string, countNumber: number) {
-    // In a real app, you would save these serials to a dedicated serials table.
-    // For this demo, we will create ScannedArticle entries with the serial as the EAN.
     const validatedFields = serialBatchSchema.safeParse({ serials, zoneId, countNumber });
      if (!validatedFields.success) {
         return { error: "Invalid serial batch data provided." };
@@ -173,15 +139,53 @@ export async function addSerialsBatch(serials: string[], zoneId: string, countNu
 
     const newEntries: ScannedArticle[] = serials.map((serial, index) => ({
         id: `serial-batch-${Date.now()}-${index}`,
-        ean: serial, // Using EAN field to store serial number
+        ean: serial,
         zoneId: zoneId,
         zoneName: zone.name,
         scannedAt: new Date().toISOString(),
         userId: `user-serial-${Math.ceil(Math.random() * 3)}`,
         countNumber: countNumber,
+        isSerial: true,
     }));
 
     setDbScannedArticles([...newEntries, ...allArticles]);
-    revalidatePath("/articles"); // To see the result in the articles table
+    revalidatePath("/articles");
+    revalidatePath("/serials");
+    revalidatePath("/dashboard");
     return { success: `Successfully uploaded ${newEntries.length} serial numbers.` };
+}
+
+// --- Dashboard Actions ---
+
+export async function getDashboardStats() {
+    await delay(100);
+    const scans = getDbScannedArticles();
+    const zones = getDbZones();
+
+    const today = new Date().toDateString();
+    const todayScans = scans.filter(scan => new Date(scan.scannedAt).toDateString() === today);
+    
+    const eanScansToday = todayScans.filter(scan => !scan.isSerial).length;
+    const seriesScansToday = todayScans.filter(scan => scan.isSerial).length;
+    
+    const activeZones = zones.length;
+    const totalItems = scans.length;
+
+    const scansByZone = scans.reduce((acc, scan) => {
+        acc[scan.zoneName] = (acc[scan.zoneName] || 0) + 1;
+        return acc;
+    }, {} as Record<string, number>);
+
+    const chartData = Object.entries(scansByZone).map(([name, value]) => ({
+        name,
+        total: value,
+    }));
+
+    return {
+        eanScansToday,
+        seriesScansToday,
+        activeZones,
+        totalItems,
+        chartData
+    };
 }

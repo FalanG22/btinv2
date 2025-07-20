@@ -8,11 +8,12 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { Truck, ScanLine, MapPin, List, Hash } from "lucide-react";
+import { Truck, ScanLine, MapPin, List, Hash, LayoutDashboard } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const navItems = [
-  { href: "/", icon: ScanLine, label: "Scan EAN" },
+  { href: "/dashboard", icon: LayoutDashboard, label: "Dashboard" },
+  { href: "/ean", icon: ScanLine, label: "Scan EAN" },
   { href: "/serials", icon: Hash, label: "Scan Series" },
   { href: "/zones", icon: MapPin, label: "Zones" },
   { href: "/articles", icon: List, label: "Articles" },
@@ -26,7 +27,7 @@ export default function Sidebar() {
       <TooltipProvider>
         <nav className="flex flex-col items-center gap-4 px-2 sm:py-5">
           <Link
-            href="/"
+            href="/dashboard"
             className="group flex h-9 w-9 shrink-0 items-center justify-center gap-2 rounded-full bg-primary text-lg font-semibold text-primary-foreground md:h-8 md:w-8 md:text-base"
           >
             <Truck className="h-4 w-4 transition-all group-hover:scale-110" />

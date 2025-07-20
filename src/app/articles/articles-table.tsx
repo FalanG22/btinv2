@@ -27,7 +27,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { MoreHorizontal, Printer, Trash2 } from "lucide-react";
+import { MoreHorizontal, Printer, Trash2, Hash, ScanLine } from "lucide-react";
 import { PrintLabel } from "./print-label";
 import { Badge } from "@/components/ui/badge";
 
@@ -62,7 +62,8 @@ export function ArticlesTable({ data }: { data: ScannedArticle[] }) {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>EAN</TableHead>
+                <TableHead>Code (EAN/Serial)</TableHead>
+                <TableHead>Type</TableHead>
                 <TableHead>Zone</TableHead>
                 <TableHead>Count</TableHead>
                 <TableHead className="hidden md:table-cell">Scanned By</TableHead>
@@ -77,6 +78,17 @@ export function ArticlesTable({ data }: { data: ScannedArticle[] }) {
                 data.map((article) => (
                   <TableRow key={article.id}>
                     <TableCell className="font-medium">{article.ean}</TableCell>
+                    <TableCell>
+                      {article.isSerial ? (
+                        <Badge variant="outline" className="gap-1 pl-2 pr-3">
+                            <Hash className="h-3 w-3" /> Serie
+                        </Badge>
+                      ) : (
+                         <Badge variant="outline" className="gap-1 pl-2 pr-3">
+                            <ScanLine className="h-3 w-3" /> EAN
+                         </Badge>
+                      )}
+                    </TableCell>
                     <TableCell>{article.zoneName}</TableCell>
                     <TableCell>
                         <Badge variant="secondary">C{article.countNumber}</Badge>
@@ -134,7 +146,7 @@ export function ArticlesTable({ data }: { data: ScannedArticle[] }) {
                 ))
               ) : (
                 <TableRow>
-                  <TableCell colSpan={6} className="h-24 text-center">
+                  <TableCell colSpan={7} className="h-24 text-center">
                     No articles found.
                   </TableCell>
                 </TableRow>

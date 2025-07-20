@@ -7,12 +7,13 @@ export type Zone = {
 
 export type ScannedArticle = {
   id: string;
-  ean: string;
+  ean: string; // Also used for serial number
   scannedAt: string;
   zoneId: string;
   zoneName: string; // denormalized for easy display
   userId: string;
   countNumber: number;
+  isSerial?: boolean; // To distinguish between EAN and Serial
 };
 
 // In-memory 'database'
@@ -24,12 +25,12 @@ let zones: Zone[] = [
 ];
 
 let scannedArticles: ScannedArticle[] = [
-  { id: 'scan-1', ean: '8412345678901', scannedAt: new Date(Date.now() - 2 * 60 * 1000).toISOString(), zoneId: 'zone-3', zoneName: 'Receiving Dock', userId: 'user-01', countNumber: 1 },
-  { id: 'scan-2', ean: '8412345678902', scannedAt: new Date(Date.now() - 5 * 60 * 1000).toISOString(), zoneId: 'zone-1', zoneName: 'Warehouse A', userId: 'user-02', countNumber: 1 },
-  { id: 'scan-3', ean: '8412345678903', scannedAt: new Date(Date.now() - 10 * 60 * 1000).toISOString(), zoneId: 'zone-1', zoneName: 'Warehouse A', userId: 'user-01', countNumber: 2 },
-  { id: 'scan-4', ean: '8412345678904', scannedAt: new Date(Date.now() - 15 * 60 * 1000).toISOString(), zoneId: 'zone-2', zoneName: 'Cold Storage 1', userId: 'user-03', countNumber: 1 },
-  { id: 'scan-5', ean: '8412345678905', scannedAt: new Date(Date.now() - 20 * 60 * 1000).toISOString(), zoneId: 'zone-4', zoneName: 'Shipping Bay', userId: 'user-02', countNumber: 3 },
-  { id: 'scan-6', ean: '8412345678906', scannedAt: new Date(Date.now() - 25 * 60 * 1000).toISOString(), zoneId: 'zone-3', zoneName: 'Receiving Dock', userId: 'user-01', countNumber: 1 },
+  { id: 'scan-1', ean: '8412345678901', scannedAt: new Date(Date.now() - 2 * 60 * 1000).toISOString(), zoneId: 'zone-3', zoneName: 'Receiving Dock', userId: 'user-01', countNumber: 1, isSerial: false },
+  { id: 'scan-2', ean: '8412345678902', scannedAt: new Date(Date.now() - 5 * 60 * 1000).toISOString(), zoneId: 'zone-1', zoneName: 'Warehouse A', userId: 'user-02', countNumber: 1, isSerial: false },
+  { id: 'scan-3', ean: 'SN-ABC-001', scannedAt: new Date(Date.now() - 8 * 60 * 1000).toISOString(), zoneId: 'zone-3', zoneName: 'Receiving Dock', userId: 'user-01', countNumber: 1, isSerial: true },
+  { id: 'scan-4', ean: '8412345678904', scannedAt: new Date(Date.now() - 15 * 60 * 1000).toISOString(), zoneId: 'zone-2', zoneName: 'Cold Storage 1', userId: 'user-03', countNumber: 1, isSerial: false },
+  { id: 'scan-5', ean: 'SN-DEF-002', scannedAt: new Date(Date.now() - 18 * 60 * 1000).toISOString(), zoneId: 'zone-1', zoneName: 'Warehouse A', userId: 'user-02', countNumber: 2, isSerial: true },
+  { id: 'scan-6', ean: 'SN-GHI-003', scannedAt: new Date().toISOString(), zoneId: 'zone-1', zoneName: 'Warehouse A', userId: 'user-01', countNumber: 1, isSerial: true },
 ];
 
 // Data access functions

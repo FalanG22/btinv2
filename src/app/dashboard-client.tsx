@@ -53,7 +53,7 @@ export default function DashboardClient({ zones }: DashboardClientProps) {
   const [step, setStep] = useState<Step>('zone');
   const [selectedZone, setSelectedZone] = useState<Zone | null>(null);
   const [selectedCount, setSelectedCount] = useState<number | null>(null);
-  const [stagedScans, setStagedScans] = useState<Omit<ScannedArticle, 'id' | 'zoneName' | 'userId'>[]>([]);
+  const [stagedScans, setStagedScans] = useState<Omit<ScannedArticle, 'id' | 'zoneName' | 'userId' | 'isSerial'>[]>([]);
 
   const getStorageKey = useCallback(() => {
     if (!selectedZone || !selectedCount) return null;
@@ -183,9 +183,9 @@ export default function DashboardClient({ zones }: DashboardClientProps) {
   const zoneOptions = zones.map(zone => ({ label: zone.name, value: zone.id }));
 
   const currentTitle = useMemo(() => {
-    if (step === 'zone') return 'Select a Zone';
-    if (step === 'count') return `Zone: ${selectedZone?.name}`;
-    if (step === 'scan') return `Zone: ${selectedZone?.name} - Conteo ${selectedCount}`;
+    if (step === 'zone') return 'Scan EAN: Select Zone';
+    if (step === 'count') return `EAN - Zone: ${selectedZone?.name}`;
+    if (step === 'scan') return `EAN - Zone: ${selectedZone?.name} - Count ${selectedCount}`;
     return 'Scan';
   }, [step, selectedZone, selectedCount]);
 
@@ -232,7 +232,7 @@ export default function DashboardClient({ zones }: DashboardClientProps) {
           <CardContent className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             {[1, 2, 3].map(num => (
               <Button key={num} onClick={() => handleCountSelect(num)} className="h-24 text-2xl">
-                Conteo {num}
+                Count {num}
               </Button>
             ))}
           </CardContent>
@@ -280,7 +280,7 @@ export default function DashboardClient({ zones }: DashboardClientProps) {
 
           <Card>
             <CardHeader>
-              <CardTitle>Staged Scans (Conteo {selectedCount})</CardTitle>
+              <CardTitle>Staged Scans (Count {selectedCount})</CardTitle>
               <CardDescription>Articles waiting to be uploaded.</CardDescription>
             </CardHeader>
             <CardContent>
