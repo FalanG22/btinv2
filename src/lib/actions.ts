@@ -51,7 +51,8 @@ export async function addZonesBatch(data: z.infer<typeof zoneBuilderSchema>) {
 
     setDbZones([...newZones, ...zones]);
     revalidatePath("/zones");
-    revalidatePath("/");
+    revalidatePath("/ean"); // Revalidate EAN scanning page
+    revalidatePath("/serials"); // Revalidate Serials scanning page
     revalidatePath("/dashboard");
     return { success: `${newZones.length} zones created successfully.` };
 }
@@ -76,7 +77,8 @@ export async function updateZone(data: z.infer<typeof zoneSchema>) {
   setDbZones(zones);
 
   revalidatePath("/zones");
-  revalidatePath("/");
+  revalidatePath("/ean");
+  revalidatePath("/serials");
   revalidatePath("/dashboard");
   return { success: `Zone "${name}" updated successfully.` };
 }
@@ -87,7 +89,8 @@ export async function deleteZone(zoneId: string) {
   setDbZones(zones.filter(z => z.id !== zoneId));
   
   revalidatePath("/zones");
-  revalidatePath("/");
+  revalidatePath("/ean");
+  revalidatePath("/serials");
   revalidatePath("/dashboard");
   return { success: `Zone "${zoneName}" deleted successfully.` };
 }
@@ -96,7 +99,15 @@ export async function deleteZone(zoneId: string) {
 
 export async function getScannedArticles(): Promise<ScannedArticle[]> {
   await delay(50);
-  return getDbScannedArticles().sort((a, b) => new Date(b.scannedAt).getTime() - new Date(a.scannedAt).getTime());
+  const articles = getDbScannedArticles();
+  const zones = getDbZones();
+  
+  return articles
+    .map(article => ({
+        ...article,
+        zoneName: zones.find(z => z.id === article.zoneId)?.name || 'Unknown Zone'
+    }))
+    .sort((a, b) => new Date(b.scannedAt).getTime() - new Date(a.scannedAt).getTime());
 }
 
 export async function addScansBatch(scans: z.infer<typeof scanBatchSchema>) {
@@ -141,6 +152,7 @@ export async function deleteScan(scanId: string) {
 
   revalidatePath("/articles");
   revalidatePath("/ean");
+  revalidatePath("/serials");
   revalidatePath("/dashboard");
   revalidatePath("/report");
   return { success: "Scan record deleted successfully." };
@@ -243,16 +255,18 @@ export type CountsReportItem = {
 export async function getCountsReport(): Promise<CountsReportItem[]> {
     await delay(50);
     const scans = getDbScannedArticles();
+    const products = getDbProducts();
 
     const reportMap = scans.reduce((acc, scan) => {
         const key = scan.ean; // Group by article code only
+        const productInfo = products.find(p => p.code === scan.ean);
 
         if (!acc[key]) {
             acc[key] = {
                 key: key,
                 ean: scan.ean,
-                sku: scan.sku,
-                description: scan.description,
+                sku: productInfo?.sku || scan.sku,
+                description: productInfo?.description || scan.description,
                 count1_user: null,
                 count1_zone: null,
                 count2_user: null,
