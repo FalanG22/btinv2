@@ -1,11 +1,11 @@
 
 "use client";
 
-import { useTransition, useState, useEffect } from "react";
+import { useTransition, useState, useEffect, useMemo } from "react";
 import { deleteScanByEan } from "@/lib/actions";
 import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
-
+import { Input } from "@/components/ui/input";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -27,7 +27,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { MoreHorizontal, Trash2, Hash, ScanLine } from "lucide-react";
+import { MoreHorizontal, Trash2, Hash, ScanLine, Search } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 
 export type GroupedScan = {
@@ -48,13 +48,28 @@ export function ScansTable({ data }: { data: GroupedScan[] }) {
   const [isPending, startTransition] = useTransition();
   const { toast } = useToast();
   const [isClient, setIsClient] = useState(false);
+  const [searchTerm, setSearchTerm] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
-  const totalPages = Math.ceil(data.length / ITEMS_PER_PAGE);
+  
+  const filteredData = useMemo(() => {
+    const lowercasedFilter = searchTerm.toLowerCase();
+    return data.filter((item) =>
+      item.ean.toLowerCase().includes(lowercasedFilter) ||
+      item.sku.toLowerCase().includes(lowercasedFilter) ||
+      item.description.toLowerCase().includes(lowercasedFilter)
+    );
+  }, [data, searchTerm]);
 
-  const paginatedData = data.slice(
-    (currentPage - 1) * ITEMS_PER_PAGE,
-    currentPage * ITEMS_PER_PAGE
-  );
+  const totalPages = Math.ceil(filteredData.length / ITEMS_PER_PAGE);
+
+  const paginatedData = useMemo(() => {
+    if (currentPage > totalPages && totalPages > 0) {
+        setCurrentPage(1);
+    }
+    const start = (currentPage - 1) * ITEMS_PER_PAGE;
+    const end = start + ITEMS_PER_PAGE;
+    return filteredData.slice(start, end);
+  }, [filteredData, currentPage, totalPages]);
 
   const handlePreviousPage = () => {
     setCurrentPage((prev) => Math.max(prev - 1, 1));
@@ -63,6 +78,12 @@ export function ScansTable({ data }: { data: GroupedScan[] }) {
   const handleNextPage = () => {
     setCurrentPage((prev) => Math.min(prev + 1, totalPages));
   };
+  
+  const handleSearchChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    setSearchTerm(event.target.value);
+    setCurrentPage(1); // Reset to first page on search
+  };
+
 
   useEffect(() => {
     setIsClient(true);
@@ -83,8 +104,22 @@ export function ScansTable({ data }: { data: GroupedScan[] }) {
     <>
       <Card>
         <CardHeader>
-          <CardTitle>Historial de Escaneos</CardTitle>
-          <CardDescription>Un listado agrupado de todos los registros de escaneo de artículos.</CardDescription>
+          <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-4">
+            <div>
+              <CardTitle>Historial de Escaneos</CardTitle>
+              <CardDescription>Un listado agrupado de todos los registros de escaneo de artículos.</CardDescription>
+            </div>
+            <div className="relative w-full sm:max-w-xs">
+              <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+              <Input
+                  type="search"
+                  placeholder="Buscar por EAN, SKU..."
+                  className="pl-8 sm:w-full"
+                  value={searchTerm}
+                  onChange={handleSearchChange}
+              />
+            </div>
+          </div>
         </CardHeader>
         <CardContent>
           <Table>
@@ -177,7 +212,7 @@ export function ScansTable({ data }: { data: GroupedScan[] }) {
               ) : (
                 <TableRow>
                   <TableCell colSpan={9} className="h-24 text-center">
-                    No se encontraron escaneos.
+                    {searchTerm ? "No se encontraron escaneos con ese criterio." : "No se encontraron escaneos."}
                   </TableCell>
                 </TableRow>
               )}
@@ -187,7 +222,7 @@ export function ScansTable({ data }: { data: GroupedScan[] }) {
          {totalPages > 1 && (
             <CardFooter className="flex items-center justify-between pt-6">
                 <div className="text-xs text-muted-foreground">
-                    Página {currentPage} de {totalPages}
+                    Mostrando <strong>{paginatedData.length}</strong> de <strong>{filteredData.length}</strong> registros
                 </div>
                 <div className="flex items-center gap-2">
                     <Button
@@ -198,6 +233,9 @@ export function ScansTable({ data }: { data: GroupedScan[] }) {
                     >
                     Anterior
                     </Button>
+                     <span className="text-sm font-medium">
+                        {currentPage} / {totalPages}
+                    </span>
                     <Button
                     variant="outline"
                     size="sm"

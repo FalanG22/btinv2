@@ -1,16 +1,44 @@
+
 "use client";
 
 import type { SkuSummaryItem } from "@/lib/actions";
+import { useState, useMemo } from "react";
+import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
+import { Search } from "lucide-react";
 
 export function SkuSummaryTable({ data }: { data: SkuSummaryItem[] }) {
+    const [searchTerm, setSearchTerm] = useState("");
+
+    const filteredData = useMemo(() => {
+        const lowercasedFilter = searchTerm.toLowerCase();
+        return data.filter((item) =>
+            item.sku.toLowerCase().includes(lowercasedFilter) ||
+            item.description.toLowerCase().includes(lowercasedFilter)
+        );
+    }, [data, searchTerm]);
+
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Resumen de Cantidades por SKU</CardTitle>
-        <CardDescription>Un listado de todos los SKUs y sus cantidades contadas.</CardDescription>
+        <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-4">
+            <div>
+                <CardTitle>Resumen de Cantidades por SKU</CardTitle>
+                <CardDescription>Un listado de todos los SKUs y sus cantidades contadas.</CardDescription>
+            </div>
+            <div className="relative w-full sm:max-w-xs">
+                <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                <Input
+                    type="search"
+                    placeholder="Buscar por SKU o descripción..."
+                    className="pl-8 sm:w-full"
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                />
+            </div>
+        </div>
       </CardHeader>
       <CardContent>
         <div className="overflow-x-auto">
@@ -26,8 +54,8 @@ export function SkuSummaryTable({ data }: { data: SkuSummaryItem[] }) {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {data.length > 0 ? (
-                data.map((item) => (
+              {filteredData.length > 0 ? (
+                filteredData.map((item) => (
                   <TableRow key={item.sku}>
                     <TableCell className="font-medium">{item.sku}</TableCell>
                     <TableCell>{item.description}</TableCell>
@@ -42,7 +70,7 @@ export function SkuSummaryTable({ data }: { data: SkuSummaryItem[] }) {
               ) : (
                 <TableRow>
                   <TableCell colSpan={6} className="h-24 text-center">
-                    No hay datos de resumen disponibles.
+                    {searchTerm ? "No se encontraron SKUs con ese criterio." : "No hay datos de resumen disponibles."}
                   </TableCell>
                 </TableRow>
               )}

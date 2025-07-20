@@ -1,13 +1,25 @@
+
 "use client";
 
 import type { CountsReportItem } from "@/lib/actions";
+import { useState, useMemo } from "react";
+import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { UserCheck, UserX, AlertTriangle } from "lucide-react";
-
+import { UserCheck, UserX, AlertTriangle, Search } from "lucide-react";
 
 export function CountsReportTable({ data }: { data: CountsReportItem[] }) {
+    const [searchTerm, setSearchTerm] = useState("");
+
+    const filteredData = useMemo(() => {
+        const lowercasedFilter = searchTerm.toLowerCase();
+        return data.filter((item) =>
+            item.ean.toLowerCase().includes(lowercasedFilter) ||
+            item.sku.toLowerCase().includes(lowercasedFilter) ||
+            item.description.toLowerCase().includes(lowercasedFilter)
+        );
+    }, [data, searchTerm]);
     
     const CountCell = ({ user, zone }: { user: string | null, zone: string | null }) => (
         <TableCell>
@@ -31,8 +43,22 @@ export function CountsReportTable({ data }: { data: CountsReportItem[] }) {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Informe de Conteos</CardTitle>
-        <CardDescription>Un listado de todos los artículos y quién realizó cada conteo.</CardDescription>
+        <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-4">
+            <div>
+                <CardTitle>Informe de Conteos</CardTitle>
+                <CardDescription>Un listado de todos los artículos y quién realizó cada conteo.</CardDescription>
+            </div>
+            <div className="relative w-full sm:max-w-xs">
+                <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                <Input
+                    type="search"
+                    placeholder="Buscar por EAN, SKU..."
+                    className="pl-8 sm:w-full"
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                />
+            </div>
+        </div>
       </CardHeader>
       <CardContent>
         <div className="overflow-x-auto">
@@ -49,8 +75,8 @@ export function CountsReportTable({ data }: { data: CountsReportItem[] }) {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {data.length > 0 ? (
-                data.map((item) => {
+              {filteredData.length > 0 ? (
+                filteredData.map((item) => {
                     const needsThirdCount = 
                         item.count1_zone &&
                         item.count2_zone &&
@@ -80,7 +106,7 @@ export function CountsReportTable({ data }: { data: CountsReportItem[] }) {
               ) : (
                 <TableRow>
                   <TableCell colSpan={7} className="h-24 text-center">
-                    No hay datos de informe disponibles.
+                    {searchTerm ? "No se encontraron registros con ese criterio." : "No hay datos de informe disponibles."}
                   </TableCell>
                 </TableRow>
               )}
