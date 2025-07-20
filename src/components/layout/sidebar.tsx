@@ -23,11 +23,12 @@ import { logout } from "@/lib/actions";
 import { Button } from "../ui/button";
 import type { AuthenticatedUser } from "@/lib/session";
 import { headers } from "next/headers";
-import { navItems } from "./mobile-sidebar";
+import { navItems } from "./navigation";
 
 
 export default async function Sidebar({ user }: { user: AuthenticatedUser }) {
-  const pathname = headers().get('next-url') || '';
+  const headersList = headers();
+  const pathname = headersList.get('next-url') || '';
   
   const userRole = user?.role || 'user';
 
