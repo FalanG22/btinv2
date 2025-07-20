@@ -1,7 +1,9 @@
 
+// NOTE: This has been modified to use a file-based store for local production.
+// Data will now persist in a `db.json` file.
 
-// NOTE: This is a simplified, in-memory data store for demonstration.
-// In a real production app, you would use a proper database.
+import fs from 'fs';
+import path from 'path';
 
 export type Company = {
   id: string;
@@ -86,9 +88,8 @@ const defaultScannedArticles: ScannedArticle[] = [
   { id: 'scan-6', ean: 'SN-GHI-003', sku: 'SKU-CAM-03', description: 'Cámara de Seguridad', scannedAt: new Date().toISOString(), zoneId: 'zone-1', zoneName: 'SC Warehouse A', userId: 'user-1', countNumber: 1, isSerial: true, companyId: 'company-sc' },
 ];
 
-// --- In-memory "database" ---
-// We simulate a database with simple in-memory arrays.
-// The `globalThis` trick is to prevent the data from being reset on hot reloads in development.
+
+// --- File-based "database" ---
 type AppDb = {
   companies: Company[];
   users: User[];
@@ -97,11 +98,9 @@ type AppDb = {
   scannedArticles: ScannedArticle[];
 };
 
-declare global {
-  var db: AppDb | undefined;
-}
+const dbPath = path.resolve(process.cwd(), 'db.json');
 
-const db: AppDb = globalThis.db || {
+const defaultDb: AppDb = {
   companies: defaultCompanies,
   users: defaultUsers,
   zones: defaultZones,
@@ -109,20 +108,59 @@ const db: AppDb = globalThis.db || {
   scannedArticles: defaultScannedArticles,
 };
 
-if (process.env.NODE_ENV !== 'production') {
-  globalThis.db = db;
+function readDb(): AppDb {
+    try {
+        if (fs.existsSync(dbPath)) {
+            const data = fs.readFileSync(dbPath, 'utf-8');
+            return JSON.parse(data);
+        } else {
+            fs.writeFileSync(dbPath, JSON.stringify(defaultDb, null, 2));
+            return defaultDb;
+        }
+    } catch (error) {
+        console.error('Error reading or initializing DB file:', error);
+        return defaultDb;
+    }
+}
+
+function writeDb(db: AppDb) {
+    try {
+        fs.writeFileSync(dbPath, JSON.stringify(db, null, 2));
+    } catch (error) {
+        console.error('Error writing to DB file:', error);
+    }
 }
 
 
 // --- Data Access Functions ---
-export const getDbCompanies = (): Company[] => db.companies;
-export const getDbUsers = (): User[] => db.users;
-export const getDbProducts = (): Product[] => db.products;
-export const getDbZones = (): Zone[] => db.zones;
-export const getDbScannedArticles = (): ScannedArticle[] => db.scannedArticles;
+export const getDbCompanies = (): Company[] => readDb().companies;
+export const getDbUsers = (): User[] => readDb().users;
+export const getDbProducts = (): Product[] => readDb().products;
+export const getDbZones = (): Zone[] => readDb().zones;
+export const getDbScannedArticles = (): ScannedArticle[] => readDb().scannedArticles;
 
-export const setDbCompanies = (newCompanies: Company[]) => { db.companies = newCompanies; };
-export const setDbUsers = (newUsers: User[]) => { db.users = newUsers; };
-export const setDbProducts = (newProducts: Product[]) => { db.products = newProducts; };
-export const setDbZones = (newZones: Zone[]) => { db.zones = newZones; };
-export const setDbScannedArticles = (newArticles: ScannedArticle[]) => { db.scannedArticles = newArticles; };
+export const setDbCompanies = (newCompanies: Company[]) => { 
+    const db = readDb();
+    db.companies = newCompanies;
+    writeDb(db);
+};
+export const setDbUsers = (newUsers: User[]) => {
+    const db = readDb();
+    db.users = newUsers;
+    writeDb(db);
+};
+export const setDbProducts = (newProducts: Product[]) => {
+    const db = readDb();
+    db.products = newProducts;
+    writeDb(db);
+};
+export const setDbZones = (newZones: Zone[]) => {
+    const db = readDb();
+    db.zones = newZones;
+    writeDb(db);
+};
+export const setDbScannedArticles = (newArticles: ScannedArticle[]) => {
+    const db = readDb();
+    db.scannedArticles = newArticles;
+    writeDb(db);
+};
