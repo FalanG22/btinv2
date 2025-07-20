@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useState, useTransition, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import type { z } from "zod";
@@ -27,6 +27,11 @@ export default function DashboardClient({ zones, initialRecentScans }: Dashboard
   const [isPending, startTransition] = useTransition();
   const { toast } = useToast();
   const [recentScans, setRecentScans] = useState<ScannedArticle[]>(initialRecentScans);
+  const [isClient, setIsClient] = useState(false);
+
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
 
   const form = useForm<z.infer<typeof scanSchema>>({
     resolver: zodResolver(scanSchema),
@@ -135,7 +140,7 @@ export default function DashboardClient({ zones, initialRecentScans }: Dashboard
                     <TableRow key={scan.id}>
                       <TableCell className="font-medium">{scan.ean}</TableCell>
                       <TableCell>{scan.zoneName}</TableCell>
-                      <TableCell>{format(new Date(scan.scannedAt), "HH:mm:ss")}</TableCell>
+                      <TableCell>{isClient ? format(new Date(scan.scannedAt), "HH:mm:ss") : '...'}</TableCell>
                     </TableRow>
                   ))
                 ) : (
