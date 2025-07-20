@@ -8,7 +8,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { Truck, ScanLine, MapPin, List, Hash, LayoutDashboard, ListChecks, Users, Package } from "lucide-react";
+import { Truck, ScanLine, MapPin, List, Hash, LayoutDashboard, ListChecks, Users, Package, BarChartHorizontal } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 // In a real app, you'd get this from a session hook
@@ -22,6 +22,7 @@ const navItems = [
   { href: "/articles", icon: List, label: "Artículos", roles: ['admin', 'user'] },
   { href: "/report", icon: ListChecks, label: "Informe de Conteos", roles: ['admin', 'user'] },
   { href: "/sku-summary", icon: Package, label: "Resumen por SKU", roles: ['admin', 'user'] },
+  { href: "/zone-summary", icon: BarChartHorizontal, label: "Resumen por Zona", roles: ['admin', 'user'] },
   { href: "/users", icon: Users, label: "Usuarios", roles: ['admin'] },
 ];
 
