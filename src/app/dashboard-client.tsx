@@ -15,17 +15,19 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Combobox } from "@/components/ui/combobox";
-import { Loader2, ScanLine, ArrowLeft, UploadCloud, Trash2 } from "lucide-react";
+import { Loader2, ScanLine, ArrowLeft, UploadCloud, Trash2, Trash } from "lucide-react";
 import { format } from 'date-fns';
 import PageHeader from "@/components/page-header";
 import {
   AlertDialog,
   AlertDialogAction,
+  AlertDialogCancel,
   AlertDialogContent,
   AlertDialogDescription,
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
+  AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 
 type DashboardClientProps = {
@@ -194,6 +196,18 @@ export default function DashboardClient({ zones }: DashboardClientProps) {
         description: "The scan has been removed from the queue.",
     });
   };
+  
+  const handleDeleteAllStagedScans = () => {
+      const key = getStorageKey();
+      if (key) {
+          localStorage.removeItem(key);
+      }
+      toast({
+          title: "Queue Cleared",
+          description: "All staged scans for this session have been deleted.",
+      });
+      resetFlow();
+  };
 
   const handleZoneSelect = (zoneId: string) => {
     const zone = zones.find(z => z.id === zoneId);
@@ -235,10 +249,34 @@ export default function DashboardClient({ zones }: DashboardClientProps) {
       <PageHeader title={currentTitle}>
         <div className="flex items-center gap-2">
             {step === 'scan' && (
-                <Button onClick={handleFinalize} disabled={isFinalizing || stagedScans.length === 0}>
-                    {isFinalizing ? <Loader2 className="mr-2 animate-spin" /> : <UploadCloud className="mr-2" />}
-                    Finalize & Upload ({stagedScans.length})
-                </Button>
+                <>
+                    <Button onClick={handleFinalize} disabled={isFinalizing || stagedScans.length === 0}>
+                        {isFinalizing ? <Loader2 className="mr-2 animate-spin" /> : <UploadCloud className="mr-2" />}
+                        Finalize & Upload ({stagedScans.length})
+                    </Button>
+                     <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                           <Button variant="destructive" size="icon" disabled={stagedScans.length === 0}>
+                                <Trash className="h-4 w-4" />
+                                <span className="sr-only">Delete All</span>
+                            </Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                            <AlertDialogHeader>
+                                <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+                                <AlertDialogDescription>
+                                    This action cannot be undone. This will permanently delete all {stagedScans.length} staged scans for this session.
+                                </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                <AlertDialogAction onClick={handleDeleteAllStagedScans} className="bg-destructive hover:bg-destructive/90">
+                                    Delete All
+                                </AlertDialogAction>
+                            </AlertDialogFooter>
+                        </AlertDialogContent>
+                      </AlertDialog>
+                </>
             )}
             {step !== 'zone' && (
                <Button variant="outline" size="sm" onClick={handleBack}><ArrowLeft className="mr-2 h-4 w-4" />Back</Button>
