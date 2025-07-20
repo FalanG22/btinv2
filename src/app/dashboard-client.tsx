@@ -114,6 +114,31 @@ export default function DashboardClient({ zones }: DashboardClientProps) {
     }
   }, [step, selectedZone, selectedCount, getStorageKey]);
 
+  // Effect for online/offline sync
+  useEffect(() => {
+    const handleOnline = () => {
+      const key = getStorageKey();
+      if (key) {
+        const savedScans = localStorage.getItem(key);
+        if (savedScans) {
+          const parsedScans = JSON.parse(savedScans);
+          if (parsedScans.length > 0) {
+            toast({
+              title: "Conexión recuperada",
+              description: `Subiendo ${parsedScans.length} escaneos guardados...`,
+            });
+            handleFinalize(true); // silent = true
+          }
+        }
+      }
+    };
+
+    window.addEventListener('online', handleOnline);
+    return () => {
+      window.removeEventListener('online', handleOnline);
+    };
+  }, [getStorageKey]);
+
   const form = useForm<z.infer<typeof scanSchema>>({
     resolver: zodResolver(scanSchema),
     defaultValues: {
@@ -204,19 +229,22 @@ export default function DashboardClient({ zones }: DashboardClientProps) {
       setStep('zone');
   }
 
-  const handleFinalize = () => {
+  const handleFinalize = (silent = false) => {
     if (stagedScans.length === 0) {
-        toast({ title: "Sin escaneos", description: "No hay escaneos para cargar.", variant: "destructive" });
+        if (!silent) {
+            toast({ title: "Sin escaneos", description: "No hay escaneos para cargar.", variant: "destructive" });
+        }
         return;
     }
 
     if (isClient && !navigator.onLine) {
-        toast({
-            title: "Estás desconectado",
-            description: "Los escaneos se han guardado. Se cargarán cuando vuelvas a tener conexión.",
-            variant: "destructive"
-        });
-        resetFlow();
+        if (!silent) {
+            toast({
+                title: "Estás desconectado",
+                description: "Los escaneos se han guardado. Se cargarán cuando vuelvas a tener conexión.",
+                variant: "destructive"
+            });
+        }
         return;
     }
 
@@ -322,7 +350,7 @@ export default function DashboardClient({ zones }: DashboardClientProps) {
         <div className="flex items-center gap-2">
             {step === 'scan' && (
                 <>
-                    <Button onClick={handleFinalize} disabled={isFinalizing || stagedScans.length === 0}>
+                    <Button onClick={() => handleFinalize()} disabled={isFinalizing || stagedScans.length === 0}>
                         {isFinalizing ? <Loader2 className="mr-2 animate-spin" /> : <UploadCloud className="mr-2" />}
                         Finalizar y Subir ({stagedScans.length})
                     </Button>
@@ -516,3 +544,5 @@ export default function DashboardClient({ zones }: DashboardClientProps) {
     </TooltipProvider>
   );
 }
+
+    

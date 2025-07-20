@@ -101,6 +101,31 @@ export default function SerialsClient({ zones }: { zones: Zone[] }) {
     }
   }, [step, selectedZone, selectedCount, getStorageKey]);
 
+  // Effect for online/offline sync
+  useEffect(() => {
+    const handleOnline = () => {
+      const key = getStorageKey();
+      if (key) {
+        const savedSerials = localStorage.getItem(key);
+        if (savedSerials) {
+          const parsedSerials = JSON.parse(savedSerials);
+          if (parsedSerials.length > 0) {
+            toast({
+              title: "Conexión recuperada",
+              description: `Subiendo ${parsedSerials.length} series guardadas...`,
+            });
+            handleFinalize(true); // silent = true
+          }
+        }
+      }
+    };
+
+    window.addEventListener('online', handleOnline);
+    return () => {
+      window.removeEventListener('online', handleOnline);
+    };
+  }, [getStorageKey]);
+
   const form = useForm<z.infer<typeof scanSchema>>({
     resolver: zodResolver(scanSchema),
     defaultValues: {
@@ -181,19 +206,22 @@ export default function SerialsClient({ zones }: { zones: Zone[] }) {
       setStep('zone');
   }
 
-  const handleFinalize = () => {
+  const handleFinalize = (silent = false) => {
     if (!selectedZone || selectedCount === null || stagedSerials.length === 0) {
-        toast({ title: "Sin series", description: "No hay números de serie para cargar.", variant: "destructive" });
+        if (!silent) {
+            toast({ title: "Sin series", description: "No hay números de serie para cargar.", variant: "destructive" });
+        }
         return;
     }
     
     if (isClient && !navigator.onLine) {
-        toast({
-            title: "Estás desconectado",
-            description: "Los escaneos se han guardado. Se cargarán cuando vuelvas a tener conexión.",
-            variant: "destructive"
-        });
-        resetFlow();
+        if (!silent) {
+            toast({
+                title: "Estás desconectado",
+                description: "Los escaneos se han guardado. Se cargarán cuando vuelvas a tener conexión.",
+                variant: "destructive"
+            });
+        }
         return;
     }
 
@@ -283,7 +311,7 @@ export default function SerialsClient({ zones }: { zones: Zone[] }) {
         <div className="flex items-center gap-2">
           {step === 'scan' && (
             <>
-              <Button onClick={handleFinalize} disabled={isFinalizing || stagedSerials.length === 0}>
+              <Button onClick={() => handleFinalize()} disabled={isFinalizing || stagedSerials.length === 0}>
                   {isFinalizing ? <Loader2 className="mr-2 animate-spin" /> : <UploadCloud className="mr-2" />}
                   Finalizar y Subir ({stagedSerials.length})
               </Button>
@@ -462,3 +490,5 @@ export default function SerialsClient({ zones }: { zones: Zone[] }) {
     </TooltipProvider>
   );
 }
+
+    
