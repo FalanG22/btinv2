@@ -354,6 +354,7 @@ export async function addScansBatch(scans: z.infer<typeof scanBatchSchema>) {
     revalidatePath("/dashboard");
     revalidatePath("/report");
     revalidatePath("/sku-summary");
+    revalidatePath("/zone-summary");
     return { success: `Se cargaron ${newScans.length} escaneos con éxito.` };
 }
 
@@ -377,6 +378,7 @@ export async function deleteScan(scanId: string) {
   revalidatePath("/dashboard");
   revalidatePath("/report");
   revalidatePath("/sku-summary");
+  revalidatePath("/zone-summary");
   return { success: "Registro de escaneo eliminado con éxito." };
 }
 
@@ -392,7 +394,6 @@ export async function deleteAllScans() {
     setDbScannedArticles(scansForOtherCompanies);
 
     revalidatePath("/scans");
-    revalidatePath("/articles");
     revalidatePath("/ean");
     revalidatePath("/serials");
     revalidatePath("/dashboard");
@@ -451,11 +452,11 @@ export async function addSerialsBatch(serials: string[], zoneId: string, countNu
 
     setDbScannedArticles([...newEntries, ...allArticles]);
     revalidatePath("/scans");
-    revalidatePath("/articles");
     revalidatePath("/serials");
     revalidatePath("/dashboard");
     revalidatePath("/report");
     revalidatePath("/sku-summary");
+    revalidatePath("/zone-summary");
     return { success: `Se cargaron ${newEntries.length} números de serie con éxito.` };
 }
 
