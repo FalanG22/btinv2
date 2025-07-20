@@ -26,6 +26,25 @@ type StagedSerial = {
     scannedAt: string;
 }
 
+// Helper to play a sound
+const playErrorSound = () => {
+    const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+    const oscillator = audioContext.createOscillator();
+    const gainNode = audioContext.createGain();
+
+    oscillator.type = 'sine';
+    oscillator.frequency.setValueAtTime(440, audioContext.currentTime); // A4 pitch
+    gainNode.gain.setValueAtTime(0.5, audioContext.currentTime);
+    gainNode.gain.exponentialRampToValueAtTime(0.0001, audioContext.currentTime + 0.5);
+
+    oscillator.connect(gainNode);
+    gainNode.connect(audioContext.destination);
+    
+    oscillator.start(audioContext.currentTime);
+    oscillator.stop(audioContext.currentTime + 0.5);
+};
+
+
 export default function SerialsClient({ zones }: { zones: Zone[] }) {
   const [isPending, startTransition] = useTransition();
   const [isFinalizing, startFinalizing] = useTransition();
@@ -72,6 +91,7 @@ export default function SerialsClient({ zones }: { zones: Zone[] }) {
   const onSubmit = (values: z.infer<typeof scanSchema>) => {
     const serial = values.ean;
     if (stagedSerials.some(s => s.serial === serial)) {
+        playErrorSound();
         toast({
             title: "Serial Duplicado",
             description: "Este número de serie ya ha sido escaneado en esta sesión.",
@@ -148,13 +168,14 @@ export default function SerialsClient({ zones }: { zones: Zone[] }) {
   };
 
   const handleBack = () => {
-    setStagedSerials([]);
     if (step === 'scan') {
-      setStep('count');
       setSelectedCount(null);
+      form.reset({ ean: "", zoneId: selectedZone?.id, countNumber: undefined });
+      setStep('count');
     } else if (step === 'count') {
-      setStep('zone');
       setSelectedZone(null);
+       form.reset({ ean: "", zoneId: "", countNumber: undefined });
+      setStep('zone');
     }
   };
   

@@ -25,6 +25,25 @@ type DashboardClientProps = {
 
 type Step = 'zone' | 'count' | 'scan';
 
+// Helper to play a sound
+const playErrorSound = () => {
+    const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+    const oscillator = audioContext.createOscillator();
+    const gainNode = audioContext.createGain();
+
+    oscillator.type = 'sine';
+    oscillator.frequency.setValueAtTime(440, audioContext.currentTime); // A4 pitch
+    gainNode.gain.setValueAtTime(0.5, audioContext.currentTime);
+    gainNode.gain.exponentialRampToValueAtTime(0.0001, audioContext.currentTime + 0.5);
+
+    oscillator.connect(gainNode);
+    gainNode.connect(audioContext.destination);
+    
+    oscillator.start(audioContext.currentTime);
+    oscillator.stop(audioContext.currentTime + 0.5);
+};
+
+
 export default function DashboardClient({ zones }: DashboardClientProps) {
   const [isPending, startTransition] = useTransition();
   const [isFinalizing, startFinalizing] = useTransition();
@@ -69,6 +88,17 @@ export default function DashboardClient({ zones }: DashboardClientProps) {
   }, [selectedZone, selectedCount, form]);
 
   const onSubmit = (values: z.infer<typeof scanSchema>) => {
+    if (stagedScans.some(s => s.ean === values.ean)) {
+        playErrorSound();
+        toast({
+            title: "EAN Duplicado",
+            description: "Este EAN ya ha sido escaneado en esta sesión.",
+            variant: "destructive"
+        });
+        form.reset({ ean: "", zoneId: selectedZone?.id, countNumber: selectedCount ?? undefined });
+        return;
+    }
+
     startTransition(() => {
         const newScan = {
             ean: values.ean,
@@ -139,13 +169,14 @@ export default function DashboardClient({ zones }: DashboardClientProps) {
   };
 
   const handleBack = () => {
-    setStagedScans([]);
     if (step === 'scan') {
-      setStep('count');
       setSelectedCount(null);
+      form.reset({ ean: "", zoneId: selectedZone?.id, countNumber: undefined });
+      setStep('count');
     } else if (step === 'count') {
-      setStep('zone');
       setSelectedZone(null);
+      form.reset({ ean: "", zoneId: "", countNumber: undefined });
+      setStep('zone');
     }
   };
   
