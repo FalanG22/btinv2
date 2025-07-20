@@ -12,8 +12,10 @@ import { Truck, ScanLine, MapPin, List, Hash, LayoutDashboard, ListChecks, Users
 import { cn } from "@/lib/utils";
 import { logout } from "@/lib/actions";
 import { Button } from "../ui/button";
-import { useTransition } from "react";
+import { useTransition, useState, useEffect } from "react";
 import { Loader2 } from "lucide-react";
+import { getCurrentUser } from "@/lib/session";
+import type { AuthenticatedUser } from "@/lib/session";
 
 const navItems = [
   { href: "/dashboard", icon: LayoutDashboard, label: "Panel", roles: ['admin', 'user'] },
@@ -29,10 +31,13 @@ const navItems = [
 
 export default function Sidebar() {
   const pathname = usePathname();
-  // NOTE: This is a simplified way to handle roles. In a real app,
-  // this info would come from the user session.
-  const userRole = 'admin'; 
-  const accessibleNavItems = navItems.filter(item => item.roles.includes(userRole));
+  const [user, setUser] = useState<AuthenticatedUser | null>(null);
+
+  useEffect(() => {
+    // We need to fetch the user on the client side for a dynamic sidebar
+    // This avoids issues with server/client state mismatch after login
+    getCurrentUser().then(setUser);
+  }, [pathname]); // Re-fetch on path change to ensure role is up-to-date
   
   const [isPending, startTransition] = useTransition();
 
@@ -41,6 +46,9 @@ export default function Sidebar() {
         await logout();
     });
   }
+
+  const userRole = user?.role || 'user';
+  const accessibleNavItems = navItems.filter(item => item.roles.includes(userRole));
 
   return (
     <aside className="fixed inset-y-0 left-0 z-10 hidden w-14 flex-col border-r bg-background sm:flex">
@@ -72,7 +80,7 @@ export default function Sidebar() {
             </Tooltip>
           ))}
         </nav>
-         <div className="mt-auto flex flex-col items-center gap-4 px-2 sm:py-5">
+        <div className="mt-auto flex flex-col items-center gap-4 px-2 sm:py-5">
           <Tooltip>
             <TooltipTrigger asChild>
                 <Button
