@@ -7,7 +7,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { Truck, ScanLine, MapPin, List, Hash, LayoutDashboard, ListChecks, Users, Package, BarChartHorizontal, LogOut } from "lucide-react";
+import { Truck, ScanLine, MapPin, List, Hash, LayoutDashboard, ListChecks, Users, Package, BarChartHorizontal, LogOut, History } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { logout } from "@/lib/actions";
 import { Button } from "../ui/button";
@@ -19,7 +19,8 @@ const navItems = [
   { href: "/ean", icon: ScanLine, label: "Escanear EAN", roles: ['admin', 'user'] },
   { href: "/serials", icon: Hash, label: "Escanear Series", roles: ['admin', 'user'] },
   { href: "/zones", icon: MapPin, label: "Zonas", roles: ['admin', 'user'] },
-  { href: "/articles", icon: List, label: "Artículos", roles: ['admin', 'user'] },
+  { href: "/articles", icon: Package, label: "Maestro de Artículos", roles: ['admin', 'user'] },
+  { href: "/scans", icon: History, label: "Historial de Escaneos", roles: ['admin', 'user']},
   { href: "/report", icon: ListChecks, label: "Informe de Conteos", roles: ['admin', 'user'] },
   { href: "/sku-summary", icon: Package, label: "Resumen por SKU", roles: ['admin', 'user'] },
   { href: "/zone-summary", icon: BarChartHorizontal, label: "Resumen por Zona", roles: ['admin', 'user'] },

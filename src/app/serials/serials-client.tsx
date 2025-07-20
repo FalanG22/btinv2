@@ -322,7 +322,7 @@ export default function SerialsClient({ zones }: { zones: Zone[] }) {
           <Card className="w-full">
             <CardHeader>
               <CardTitle>Escanear o Ingresar Serie</CardTitle>
-              <CardDescription>Ingresa un número de serie para prepararlo para la carga.</CardDescription>
+              <CardDescription>Ingresa un número de serie para prepararlo para la carga. La serie debe existir en el maestro de artículos.</CardDescription>
             </CardHeader>
             <CardContent>
               <Form {...form}>

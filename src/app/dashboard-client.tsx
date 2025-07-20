@@ -323,7 +323,7 @@ export default function DashboardClient({ zones }: DashboardClientProps) {
           <Card className="w-full">
             <CardHeader>
               <CardTitle>Escanear o Ingresar Artículo</CardTitle>
-              <CardDescription>Ingresa un código EAN para prepararlo para la carga.</CardDescription>
+              <CardDescription>Ingresa un código EAN para prepararlo para la carga. El código debe existir en el maestro de artículos.</CardDescription>
             </CardHeader>
             <CardContent>
               <Form {...form}>

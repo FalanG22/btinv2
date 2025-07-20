@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
-import { getDbScannedArticles, getDbZones, setDbScannedArticles, setDbZones, type ScannedArticle, type Zone, getDbProducts, getDbUsers, getDbCompanies, setDbUsers, type User, type Company } from "./data";
+import { getDbScannedArticles, getDbZones, setDbScannedArticles, setDbZones, type ScannedArticle, type Zone, getDbProducts, getDbUsers, getDbCompanies, setDbUsers, type User, type Company, type Product } from "./data";
 import { scanSchema, zoneSchema, scanBatchSchema, serialBatchSchema, zoneBuilderSchema, userSchema } from "./schemas";
 import { getCurrentUser } from "./session";
 import { redirect } from "next/navigation";
@@ -258,6 +258,15 @@ export async function deleteZone(zoneId: string) {
   return { success: `Zona "${zoneName}" eliminada con éxito.` };
 }
 
+
+// --- Master Product Actions ---
+export async function getProducts(): Promise<Product[]> {
+    // In a real app, this would be company-specific.
+    // For this demo, we return all products.
+    return getDbProducts();
+}
+
+
 // --- Article Scan Actions ---
 
 export async function getScannedArticles(): Promise<ScannedArticle[]> {
@@ -293,10 +302,17 @@ export async function addScansBatch(scans: z.infer<typeof scanBatchSchema>) {
     const allArticles = getDbScannedArticles();
     const products = getDbProducts();
 
-    const newScans: ScannedArticle[] = validatedFields.data.map((scan, index) => {
-        const zone = zones.find(z => z.id === scan.zoneId && z.companyId === companyId);
+    const newScans: ScannedArticle[] = [];
+    for (const [index, scan] of validatedFields.data.entries()) {
         const productInfo = products.find(p => p.code === scan.ean);
-        return {
+        if (!productInfo) {
+            // In a real app, you might want to return which EANs failed.
+            // For now, we'll return a general error.
+            return { error: `El artículo con EAN "${scan.ean}" no existe en el maestro de productos.` };
+        }
+
+        const zone = zones.find(z => z.id === scan.zoneId && z.companyId === companyId);
+        newScans.push({
             id: `scan-batch-${Date.now()}-${index}`,
             ean: scan.ean,
             sku: productInfo?.sku || 'N/A',
@@ -308,12 +324,12 @@ export async function addScansBatch(scans: z.infer<typeof scanBatchSchema>) {
             countNumber: scan.countNumber,
             isSerial: false,
             companyId: companyId,
-        };
-    });
+        });
+    }
 
     setDbScannedArticles([...newScans, ...allArticles]);
     revalidatePath("/ean");
-    revalidatePath("/articles");
+    revalidatePath("/scans");
     revalidatePath("/dashboard");
     revalidatePath("/report");
     revalidatePath("/sku-summary");
@@ -334,7 +350,7 @@ export async function deleteScan(scanId: string) {
 
   setDbScannedArticles(articles.filter(a => a.id !== scanId));
 
-  revalidatePath("/articles");
+  revalidatePath("/scans");
   revalidatePath("/ean");
   revalidatePath("/serials");
   revalidatePath("/dashboard");
@@ -354,6 +370,7 @@ export async function deleteAllScans() {
     
     setDbScannedArticles(scansForOtherCompanies);
 
+    revalidatePath("/scans");
     revalidatePath("/articles");
     revalidatePath("/ean");
     revalidatePath("/serials");
@@ -386,12 +403,17 @@ export async function addSerialsBatch(serials: string[], zoneId: string, countNu
     if (!zone || zone.companyId !== companyId) {
         return { error: "Zona seleccionada no encontrada o no tienes permiso." };
     }
-
-    const newEntries: ScannedArticle[] = serials.map((serial, index) => {
+    
+    const newEntries: ScannedArticle[] = [];
+    for(const [index, serial] of serials.entries()) {
         const productInfo = products.find(p => p.code === serial);
-        return {
+        if (!productInfo) {
+            return { error: `La serie "${serial}" no existe en el maestro de productos.` };
+        }
+
+        newEntries.push({
             id: `serial-batch-${Date.now()}-${index}`,
-            ean: serial,
+            ean: serial, // Storing serial in ean field
             sku: productInfo?.sku || 'N/A',
             description: productInfo?.description || 'Producto no encontrado',
             zoneId: zoneId,
@@ -401,10 +423,12 @@ export async function addSerialsBatch(serials: string[], zoneId: string, countNu
             countNumber: countNumber,
             isSerial: true,
             companyId: companyId,
-        };
-    });
+        });
+    }
+
 
     setDbScannedArticles([...newEntries, ...allArticles]);
+    revalidatePath("/scans");
     revalidatePath("/articles");
     revalidatePath("/serials");
     revalidatePath("/dashboard");
