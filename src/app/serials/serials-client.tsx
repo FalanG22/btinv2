@@ -1,10 +1,11 @@
+
 "use client";
 
 import { useState, useTransition, useEffect, useMemo, useCallback } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import type { z } from "zod";
-import { addSerialsBatch } from "@/lib/actions";
+import { addSerialsBatch, validateEan } from "@/lib/actions";
 import type { Zone } from "@/lib/data";
 import { scanSchema } from "@/lib/schemas";
 import { useToast } from "@/hooks/use-toast";
@@ -108,33 +109,48 @@ export default function SerialsClient({ zones }: { zones: Zone[] }) {
   }, [selectedZone, selectedCount, form]);
 
   const onSubmit = (values: z.infer<typeof scanSchema>) => {
-    const serial = values.ean;
-    if (stagedSerials.some(s => s.serial === serial)) {
+    const serial = values.ean; // 'ean' field from schema is used for serial here
+    startTransition(async () => {
+      // 1. Check for duplicates locally
+      if (stagedSerials.some(s => s.serial === serial)) {
+          playErrorSound();
+          toast({
+              title: "Serie Duplicada",
+              description: "Este número de serie ya ha sido escaneado en esta sesión.",
+              variant: "destructive"
+          });
+          form.reset({ ean: "", zoneId: selectedZone?.id, countNumber: selectedCount ?? undefined });
+          return;
+      }
+      
+      // 2. Validate if Serial exists in master products
+      const { exists } = await validateEan(serial);
+      if (!exists) {
         playErrorSound();
         toast({
-            title: "Serie Duplicada",
-            description: "Este número de serie ya ha sido escaneado en esta sesión.",
-            variant: "destructive"
+          title: "Serie no Encontrada",
+          description: `La serie "${serial}" no existe en el maestro de artículos.`,
+          variant: "destructive",
         });
         form.reset({ ean: "", zoneId: selectedZone?.id, countNumber: selectedCount ?? undefined });
         return;
-    }
+      }
 
-    startTransition(() => {
-        const newSerial = { serial, scannedAt: new Date().toISOString() };
-        const updatedSerials = [newSerial, ...stagedSerials];
-        setStagedSerials(updatedSerials);
-        
-        const key = getStorageKey();
-        if (key) {
-            localStorage.setItem(key, JSON.stringify(updatedSerials));
-        }
+      // 3. If valid, add to staged serials
+      const newSerial = { serial, scannedAt: new Date().toISOString() };
+      const updatedSerials = [newSerial, ...stagedSerials];
+      setStagedSerials(updatedSerials);
+      
+      const key = getStorageKey();
+      if (key) {
+          localStorage.setItem(key, JSON.stringify(updatedSerials));
+      }
 
-        toast({
-          title: "Serie Añadida",
-          description: `Número de serie ${serial} preparado para cargar.`,
-        });
-        form.reset({ ean: "", zoneId: selectedZone?.id, countNumber: selectedCount ?? undefined });
+      toast({
+        title: "Serie Añadida",
+        description: `Número de serie ${serial} preparado para cargar.`,
+      });
+      form.reset({ ean: "", zoneId: selectedZone?.id, countNumber: selectedCount ?? undefined });
     });
   };
 

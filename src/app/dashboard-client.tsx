@@ -1,10 +1,11 @@
+
 "use client";
 
 import { useState, useTransition, useEffect, useMemo, useCallback } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import type { z } from "zod";
-import { addScansBatch } from "@/lib/actions";
+import { addScansBatch, validateEan } from "@/lib/actions";
 import type { ScannedArticle, Zone } from "@/lib/data";
 import { scanSchema } from "@/lib/schemas";
 import { useToast } from "@/hooks/use-toast";
@@ -107,37 +108,52 @@ export default function DashboardClient({ zones }: DashboardClientProps) {
   }, [selectedZone, selectedCount, form]);
 
   const onSubmit = (values: z.infer<typeof scanSchema>) => {
-    if (stagedScans.some(s => s.ean === values.ean)) {
+    startTransition(async () => {
+      // 1. Check for duplicates locally
+      if (stagedScans.some(s => s.ean === values.ean)) {
+          playErrorSound();
+          toast({
+              title: "EAN Duplicado",
+              description: "Este EAN ya ha sido escaneado en esta sesión.",
+              variant: "destructive"
+          });
+          form.reset({ ean: "", zoneId: selectedZone?.id, countNumber: selectedCount ?? undefined });
+          return;
+      }
+      
+      // 2. Validate if EAN exists in master products
+      const { exists } = await validateEan(values.ean);
+      if (!exists) {
         playErrorSound();
         toast({
-            title: "EAN Duplicado",
-            description: "Este EAN ya ha sido escaneado en esta sesión.",
-            variant: "destructive"
+          title: "EAN no Encontrado",
+          description: `El código "${values.ean}" no existe en el maestro de artículos.`,
+          variant: "destructive",
         });
         form.reset({ ean: "", zoneId: selectedZone?.id, countNumber: selectedCount ?? undefined });
         return;
-    }
+      }
 
-    startTransition(() => {
-        const newScan = {
-            ean: values.ean,
-            scannedAt: new Date().toISOString(),
-            zoneId: values.zoneId,
-            countNumber: values.countNumber,
-        };
-        const updatedScans = [newScan, ...stagedScans];
-        setStagedScans(updatedScans);
+      // 3. If valid, add to staged scans
+      const newScan = {
+          ean: values.ean,
+          scannedAt: new Date().toISOString(),
+          zoneId: values.zoneId,
+          countNumber: values.countNumber,
+      };
+      const updatedScans = [newScan, ...stagedScans];
+      setStagedScans(updatedScans);
 
-        const key = getStorageKey();
-        if(key) {
-            localStorage.setItem(key, JSON.stringify(updatedScans));
-        }
+      const key = getStorageKey();
+      if(key) {
+          localStorage.setItem(key, JSON.stringify(updatedScans));
+      }
 
-        toast({
-          title: "Escaneo añadido",
-          description: `EAN ${values.ean} preparado para la carga.`,
-        });
-        form.reset({ ean: "", zoneId: selectedZone?.id, countNumber: selectedCount });
+      toast({
+        title: "Escaneo añadido",
+        description: `EAN ${values.ean} preparado para la carga.`,
+      });
+      form.reset({ ean: "", zoneId: selectedZone?.id, countNumber: selectedCount });
     });
   };
 

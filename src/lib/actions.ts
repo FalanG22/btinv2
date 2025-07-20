@@ -1,3 +1,4 @@
+
 "use server";
 
 import { revalidatePath } from "next/cache";
@@ -266,6 +267,12 @@ export async function getProducts(): Promise<Product[]> {
     return getDbProducts();
 }
 
+export async function validateEan(ean: string): Promise<{ exists: boolean }> {
+  const products = getDbProducts();
+  const exists = products.some(p => p.code === ean);
+  return { exists };
+}
+
 
 // --- Article Scan Actions ---
 
@@ -305,9 +312,8 @@ export async function addScansBatch(scans: z.infer<typeof scanBatchSchema>) {
     const newScans: ScannedArticle[] = [];
     for (const [index, scan] of validatedFields.data.entries()) {
         const productInfo = products.find(p => p.code === scan.ean);
+        // This validation is now redundant due to instant validation, but kept as a safeguard
         if (!productInfo) {
-            // In a real app, you might want to return which EANs failed.
-            // For now, we'll return a general error.
             return { error: `El artículo con EAN "${scan.ean}" no existe en el maestro de productos.` };
         }
 
@@ -407,6 +413,7 @@ export async function addSerialsBatch(serials: string[], zoneId: string, countNu
     const newEntries: ScannedArticle[] = [];
     for(const [index, serial] of serials.entries()) {
         const productInfo = products.find(p => p.code === serial);
+        // This validation is now redundant due to instant validation, but kept as a safeguard
         if (!productInfo) {
             return { error: `La serie "${serial}" no existe en el maestro de productos.` };
         }
