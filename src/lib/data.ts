@@ -1,4 +1,8 @@
 
+
+// NOTE: This is a simplified, in-memory data store for demonstration.
+// In a real production app, you would use a proper database.
+
 export type Company = {
   id: string;
   name: string;
@@ -11,8 +15,6 @@ export type User = {
     role: 'admin' | 'user';
     companyId: string;
     createdAt: string;
-    // For this demo, we'll store the password in plain text.
-    // In a real app, this should be a secure hash.
     password?: string; 
 };
 
@@ -25,41 +27,39 @@ export type Zone = {
 };
 
 export type Product = {
-  code: string; // EAN or Serial
+  code: string;
   sku: string;
   description: string;
 };
 
 export type ScannedArticle = {
   id: string;
-  ean: string; // Also used for serial number
+  ean: string;
   sku: string;
   description: string;
   scannedAt: string;
   zoneId: string;
-  zoneName: string; // denormalized for easy display
+  zoneName: string;
   userId: string;
   countNumber: number;
-  isSerial?: boolean; // To distinguish between EAN and Serial
+  isSerial?: boolean;
   companyId: string;
 };
 
-// In-memory 'database'
-
-let companies: Company[] = [
+// --- Default Mock Data ---
+const defaultCompanies: Company[] = [
     { id: 'company-sc', name: 'SommierCenter SC' },
     { id: 'company-bt', name: 'Bedtime BT' },
 ];
 
-let users: User[] = [
+const defaultUsers: User[] = [
     { id: 'user-admin', name: 'Admin SC', email: 'admin@sommiercenter.com', role: 'admin', companyId: 'company-sc', createdAt: new Date().toISOString(), password: 'password123' },
     { id: 'user-1', name: 'Alice Smith', email: 'alice@sommiercenter.com', role: 'user', companyId: 'company-sc', createdAt: new Date().toISOString(), password: 'password123' },
     { id: 'user-2', name: 'Bob Johnson', email: 'bob@bedtime.com', role: 'user', companyId: 'company-bt', createdAt: new Date().toISOString(), password: 'password123' },
     { id: 'user-admin-bt', name: 'Admin BT', email: 'admin@bedtime.com', role: 'admin', companyId: 'company-bt', createdAt: new Date().toISOString(), password: 'password123' },
 ];
 
-// Master Product List
-let dbProducts: Product[] = [
+const defaultProducts: Product[] = [
   { code: '8412345678901', sku: 'SKU-001', description: 'Caja de Tornillos 5mm' },
   { code: '8412345678902', sku: 'SKU-002', description: 'Paquete de Pilas AA' },
   { code: 'SN-ABC-001', sku: 'SKU-LAP-01', description: 'Laptop Modelo X' },
@@ -70,15 +70,14 @@ let dbProducts: Product[] = [
   { code: '7796448054691', sku: 'SKU-COL-02', description: 'Almohada Bedtime' },
 ];
 
-
-let zones: Zone[] = [
+const defaultZones: Zone[] = [
   { id: 'zone-1', name: 'SC Warehouse A', description: 'Main storage area for dry goods.', createdAt: new Date().toISOString(), companyId: 'company-sc' },
   { id: 'zone-2', name: 'SC Cold Storage 1', description: 'Refrigerated section for perishable items.', createdAt: new Date().toISOString(), companyId: 'company-sc' },
   { id: 'zone-3', name: 'BT Receiving Dock', description: 'Area for incoming shipments.', createdAt: new Date().toISOString(), companyId: 'company-bt' },
   { id: 'zone-4', name: 'BT Shipping Bay', description: 'Area for outgoing orders.', createdAt: new Date().toISOString(), companyId: 'company-bt' },
 ];
 
-let scannedArticles: ScannedArticle[] = [
+const defaultScannedArticles: ScannedArticle[] = [
   { id: 'scan-1', ean: '8412345678901', sku: 'SKU-001', description: 'Caja de Tornillos 5mm', scannedAt: new Date(Date.now() - 2 * 60 * 1000).toISOString(), zoneId: 'zone-1', zoneName: 'SC Warehouse A', userId: 'user-1', countNumber: 1, isSerial: false, companyId: 'company-sc' },
   { id: 'scan-2', ean: '8412345678902', sku: 'SKU-002', description: 'Paquete de Pilas AA', scannedAt: new Date(Date.now() - 5 * 60 * 1000).toISOString(), zoneId: 'zone-1', zoneName: 'SC Warehouse A', userId: 'user-1', countNumber: 1, isSerial: false, companyId: 'company-sc' },
   { id: 'scan-3', ean: 'SN-ABC-001', sku: 'SKU-LAP-01', description: 'Laptop Modelo X', scannedAt: new Date(Date.now() - 8 * 60 * 1000).toISOString(), zoneId: 'zone-3', zoneName: 'BT Receiving Dock', userId: 'user-2', countNumber: 1, isSerial: true, companyId: 'company-bt' },
@@ -87,23 +86,43 @@ let scannedArticles: ScannedArticle[] = [
   { id: 'scan-6', ean: 'SN-GHI-003', sku: 'SKU-CAM-03', description: 'Cámara de Seguridad', scannedAt: new Date().toISOString(), zoneId: 'zone-1', zoneName: 'SC Warehouse A', userId: 'user-1', countNumber: 1, isSerial: true, companyId: 'company-sc' },
 ];
 
-// Data access functions
-export const getDbCompanies = () => companies;
-export const getDbUsers = () => users;
-export const getDbProducts = () => dbProducts;
-export const getDbZones = () => zones;
-export const getDbScannedArticles = () => scannedArticles;
+// --- In-memory "database" ---
+// We simulate a database with simple in-memory arrays.
+// The `globalThis` trick is to prevent the data from being reset on hot reloads in development.
+type AppDb = {
+  companies: Company[];
+  users: User[];
+  zones: Zone[];
+  products: Product[];
+  scannedArticles: ScannedArticle[];
+};
+
+declare global {
+  var db: AppDb | undefined;
+}
+
+const db: AppDb = globalThis.db || {
+  companies: defaultCompanies,
+  users: defaultUsers,
+  zones: defaultZones,
+  products: defaultProducts,
+  scannedArticles: defaultScannedArticles,
+};
+
+if (process.env.NODE_ENV !== 'production') {
+  globalThis.db = db;
+}
 
 
-export const setDbUsers = (newUsers: User[]) => {
-    users = newUsers;
-};
-export const setDbZones = (newZones: Zone[]) => {
-  zones = newZones;
-};
-export const setDbScannedArticles = (newArticles: ScannedArticle[]) => {
-  scannedArticles = newArticles;
-};
-export const setDbProducts = (newProducts: Product[]) => {
-  dbProducts = newProducts;
-};
+// --- Data Access Functions ---
+export const getDbCompanies = (): Company[] => db.companies;
+export const getDbUsers = (): User[] => db.users;
+export const getDbProducts = (): Product[] => db.products;
+export const getDbZones = (): Zone[] => db.zones;
+export const getDbScannedArticles = (): ScannedArticle[] => db.scannedArticles;
+
+export const setDbCompanies = (newCompanies: Company[]) => { db.companies = newCompanies; };
+export const setDbUsers = (newUsers: User[]) => { db.users = newUsers; };
+export const setDbProducts = (newProducts: Product[]) => { db.products = newProducts; };
+export const setDbZones = (newZones: Zone[]) => { db.zones = newZones; };
+export const setDbScannedArticles = (newArticles: ScannedArticle[]) => { db.scannedArticles = newArticles; };

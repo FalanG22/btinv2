@@ -281,8 +281,7 @@ export async function deleteZone(zoneId: string) {
 
 // --- Master Product Actions ---
 export async function getProducts(): Promise<Product[]> {
-    // In a real app, this would be company-specific.
-    // For this demo, we return all products.
+    // This now reads from localStorage-backed store
     return getDbProducts();
 }
 
@@ -298,20 +297,13 @@ export async function addProductsFromCsv(products: Product[]) {
     }
 
     let allProducts = getDbProducts();
-    const newProducts: Product[] = [];
+    const newOrUpdatedProducts = new Map(allProducts.map(p => [p.code, p]));
 
     for (const product of validatedFields.data) {
-        // Update existing product or add new one
-        const existingIndex = allProducts.findIndex(p => p.code === product.code);
-        if (existingIndex !== -1) {
-            allProducts[existingIndex] = product;
-        } else {
-            newProducts.push(product);
-        }
+        newOrUpdatedProducts.set(product.code, product);
     }
-
-    const finalProducts = [...allProducts, ...newProducts];
-    setDbProducts(finalProducts);
+    
+    setDbProducts(Array.from(newOrUpdatedProducts.values()));
 
     revalidatePath("/articles");
     return { success: `${products.length} artículos importados o actualizados correctamente.` };
@@ -334,9 +326,7 @@ export async function deleteAllProducts() {
     if (!session) {
         return { error: "No autorizado." };
     }
-    // In a real app, this should probably be restricted to admin roles
-    // and might have more complex logic, like checking companyId.
-    // For the demo, we'll allow it and clear the entire list.
+    // For the demo, we'll allow it and clear the entire list from localStorage
     setDbProducts([]);
     revalidatePath("/articles");
     revalidatePath("/ean");
@@ -383,7 +373,6 @@ export async function addScansBatch(scans: z.infer<typeof scanBatchSchema>) {
     const newScans: ScannedArticle[] = [];
     for (const [index, scan] of validatedFields.data.entries()) {
         const productInfo = products.find(p => p.code === scan.ean);
-        // This validation is now redundant due to instant validation, but kept as a safeguard
         if (!productInfo) {
             return { error: `El artículo con EAN "${scan.ean}" no existe en el maestro de productos.` };
         }
@@ -421,7 +410,6 @@ export async function deleteScanByEan(ean: string) {
   let articles = getDbScannedArticles();
   const scansForEan = articles.filter(a => a.ean === ean && a.companyId === session.companyId);
 
-  // Security check
   if (scansForEan.length === 0) {
       return { error: "No se encontraron escaneos para este código." };
   }
@@ -485,7 +473,6 @@ export async function addSerialsBatch(serials: string[], zoneId: string, countNu
     const newEntries: ScannedArticle[] = [];
     for(const [index, serial] of serials.entries()) {
         const productInfo = products.find(p => p.code === serial);
-        // This validation is now redundant due to instant validation, but kept as a safeguard
         if (!productInfo) {
             return { error: `La serie "${serial}" no existe en el maestro de productos.` };
         }

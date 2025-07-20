@@ -19,8 +19,22 @@ import PageHeader from "@/components/page-header";
 import { getDashboardStats } from "@/lib/actions";
 import { ScanLine, Hash, MapPin, List } from "lucide-react";
 import { useEffect, useState } from "react";
+import { Skeleton } from "@/components/ui/skeleton";
 
 type DashboardStats = Awaited<ReturnType<typeof getDashboardStats>>;
+
+function StatCardSkeleton() {
+    return (
+        <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <Skeleton className="h-4 w-2/3" />
+            </CardHeader>
+            <CardContent>
+                <Skeleton className="h-7 w-1/3" />
+            </CardContent>
+        </Card>
+    )
+}
 
 export default function DashboardPage() {
   const [stats, setStats] = useState<DashboardStats | null>(null);
@@ -51,8 +65,22 @@ export default function DashboardPage() {
                 title="Panel de Control"
                 description="Un resumen de tu actividad de escaneo."
             />
-            <div className="grid place-items-center h-96">
-                <p>Cargando estadísticas...</p>
+            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+                <StatCardSkeleton />
+                <StatCardSkeleton />
+                <StatCardSkeleton />
+                <StatCardSkeleton />
+            </div>
+            <div className="grid gap-4 md:gap-8 lg:grid-cols-1">
+                <Card>
+                    <CardHeader>
+                        <Skeleton className="h-6 w-1/4" />
+                        <Skeleton className="h-4 w-2/5" />
+                    </CardHeader>
+                    <CardContent>
+                       <Skeleton className="h-[350px] w-full" />
+                    </CardContent>
+                </Card>
             </div>
         </div>
     )
@@ -65,37 +93,37 @@ export default function DashboardPage() {
         description="Un resumen de tu actividad de escaneo."
       />
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        <Card className="bg-gradient-to-tr from-blue-500 to-blue-700 text-white">
+        <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Escaneos EAN (Hoy)</CardTitle>
-            <ScanLine className="h-4 w-4 text-blue-100" />
+            <ScanLine className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{stats.eanScansToday}</div>
           </CardContent>
         </Card>
-        <Card className="bg-gradient-to-tr from-green-500 to-green-700 text-white">
+        <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Escaneos Series (Hoy)</CardTitle>
-            <Hash className="h-4 w-4 text-green-100" />
+            <Hash className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{stats.seriesScansToday}</div>
           </CardContent>
         </Card>
-        <Card className="bg-gradient-to-tr from-orange-500 to-orange-700 text-white">
+        <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Zonas Activas</CardTitle>
-            <MapPin className="h-4 w-4 text-orange-100" />
+            <MapPin className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{stats.activeZones}</div>
           </CardContent>
         </Card>
-        <Card className="bg-gradient-to-tr from-purple-500 to-purple-700 text-white">
+        <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Total de Escaneos</CardTitle>
-            <List className="h-4 w-4 text-purple-100" />
+            <List className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{stats.totalItems}</div>
