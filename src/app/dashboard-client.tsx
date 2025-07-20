@@ -23,6 +23,7 @@ import {
   AlertDialogAction,
   AlertDialogContent,
   AlertDialogDescription,
+  AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
@@ -362,16 +363,20 @@ export default function DashboardClient({ zones }: DashboardClientProps) {
         <AlertDialogContent>
             <AlertDialogHeader>
             <AlertDialogTitle>Upload Successful</AlertDialogTitle>
-            <AlertDialogDescription>
-                The following data has been uploaded successfully:
-                <ul className="mt-2 list-disc list-inside">
-                    <li><strong>Zone:</strong> {submissionDetails?.zoneName}</li>
-                    <li><strong>Count:</strong> {submissionDetails?.countNumber}</li>
-                    <li><strong>Total Items:</strong> {submissionDetails?.quantity}</li>
-                </ul>
+            <AlertDialogDescription asChild>
+                <div>
+                  The following data has been uploaded successfully:
+                  <ul className="mt-2 list-disc list-inside">
+                      <li><strong>Zone:</strong> {submissionDetails?.zoneName}</li>
+                      <li><strong>Count:</strong> {submissionDetails?.countNumber}</li>
+                      <li><strong>Total Items:</strong> {submissionDetails?.quantity}</li>
+                  </ul>
+                </div>
             </AlertDialogDescription>
             </AlertDialogHeader>
-            <AlertDialogAction onClick={resetFlow}>Accept</AlertDialogAction>
+            <AlertDialogFooter>
+                <AlertDialogAction onClick={resetFlow}>Accept</AlertDialogAction>
+            </AlertDialogFooter>
         </AlertDialogContent>
     </AlertDialog>
     </>
