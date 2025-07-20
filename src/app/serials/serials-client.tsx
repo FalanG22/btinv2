@@ -151,11 +151,11 @@ export default function SerialsClient({ zones }: { zones: Zone[] }) {
             toast({ title: "Error", description: result.error, variant: "destructive" });
         } else {
             toast({ title: "Success", description: result.success });
-            setStagedSerials([]);
             const key = getStorageKey();
             if (key) {
                 localStorage.removeItem(key);
             }
+            resetFlow();
         }
     });
   };

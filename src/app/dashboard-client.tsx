@@ -153,11 +153,11 @@ export default function DashboardClient({ zones }: DashboardClientProps) {
             toast({ title: "Error", description: result.error, variant: "destructive" });
         } else {
             toast({ title: "Success", description: result.success });
-            setStagedScans([]);
             const key = getStorageKey();
             if (key) {
                 localStorage.removeItem(key);
             }
+            resetFlow();
         }
     });
   }
