@@ -67,6 +67,7 @@ let dbProducts: Product[] = [
   { code: 'SN-DEF-002', sku: 'SKU-MON-02', description: 'Monitor 24 pulgadas' },
   { code: 'SN-GHI-003', sku: 'SKU-CAM-03', description: 'Cámara de Seguridad' },
   { code: '7796448205154', sku: 'SKU-COL-01', description: 'Colchón Bedtime' },
+  { code: '7796448054691', sku: 'SKU-COL-02', description: 'Almohada Bedtime' },
 ];
 
 
