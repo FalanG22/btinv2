@@ -44,7 +44,7 @@ export function ZoneSummaryTable({ data }: { data: ZoneSummaryItem[] }) {
                   </TableCell>
                 </TableRow>
               )}
-            </Body>
+            </TableBody>
           </Table>
         </div>
       </CardContent>
