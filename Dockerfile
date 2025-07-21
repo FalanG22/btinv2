@@ -1,38 +1,48 @@
-# ---- Base Stage ----
-# Utiliza una imagen oficial de Node.js 20 como base.
-# 'alpine' es una versión ligera, ideal para producción.
-FROM node:20-alpine AS base
+# Fase 1: Entorno de construcción (Builder)
+# Usa la imagen oficial de Node.js v20 como base.
+FROM node:20-alpine AS builder
+
+# Establece el directorio de trabajo dentro del contenedor.
 WORKDIR /app
 
-# ---- Dependencies Stage ----
-# Copia los archivos de manifiesto del paquete y el lockfile.
-FROM base AS deps
-COPY package.json package-lock.json ./
-# Instala solo las dependencias de producción para mantener la imagen ligera.
-RUN npm install --omit=dev
+# Copia los archivos de manifiesto del paquete (package.json y package-lock.json).
+# Usar `COPY` selectivo aprovecha el caché de capas de Docker.
+COPY package*.json ./
 
-# ---- Build Stage ----
-# Construye la aplicación Next.js.
-FROM base AS builder
-WORKDIR /app
-COPY --from=deps /app/node_modules ./node_modules
+# Instala las dependencias del proyecto.
+RUN npm install
+
+# Copia el resto del código fuente de la aplicación.
 COPY . .
-# Ejecuta el script de construcción de Next.js.
+
+# Construye la aplicación Next.js para producción.
+# Esto genera una carpeta .next optimizada.
 RUN npm run build
 
-# ---- Runner Stage ----
-# La imagen final que se ejecutará.
-FROM base AS runner
+# Fase 2: Entorno de producción (Runner)
+# Usa una imagen de Node.js más ligera para producción.
+FROM node:20-alpine AS runner
+
+# Establece el directorio de trabajo.
 WORKDIR /app
 
-# Copia los archivos de construcción y las dependencias de producción.
-COPY --from=builder /app/public ./public
-COPY --from=builder /app/.next/standalone ./
-COPY --from=builder /app/.next/static ./.next/static
+# Copia las dependencias de producción desde la fase de construcción.
+# Esto evita tener las dependencias de desarrollo en la imagen final.
+COPY --from=builder /app/node_modules ./node_modules
+COPY --from=builder /app/package.json ./package.json
 
-# Expone el puerto 3000 (el puerto por defecto en el que se ejecuta Next.js).
+# Copia la aplicación construida desde la fase de construcción.
+# La carpeta .next/standalone contiene solo lo necesario para ejecutar la app.
+COPY --from=builder /app/.next/standalone ./
+
+# Copia la carpeta `public` y el archivo `db.json` (que será montado).
+COPY --from=builder /app/public ./public
+COPY --from=builder /app/db.json ./db.json
+
+
+# Expone el puerto 3000, que es el puerto por defecto en el que Next.js se ejecuta.
 EXPOSE 3000
 
 # El comando para iniciar la aplicación.
-# 'node server.js' es el comando recomendado para ejecutar una app Next.js standalone.
+# Ejecuta el servidor Node.js que Next.js proporciona para producción.
 CMD ["node", "server.js"]
