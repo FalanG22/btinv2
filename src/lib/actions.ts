@@ -3,10 +3,12 @@
 
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
-import { getDbScannedArticles, getDbZones, setDbScannedArticles, setDbZones, type ScannedArticle, type Zone, getDbProducts, getDbUsers, getDbCompanies, setDbUsers, type User, type Company, type Product, setDbProducts } from "./data";
 import { scanSchema, zoneSchema, scanBatchSchema, serialBatchSchema, zoneBuilderSchema, userSchema, productsCsvSchema } from "./schemas";
 import { getCurrentUser } from "./session";
 import { redirect } from "next/navigation";
+import { query } from "./db";
+import type { RowDataPacket, ResultSetHeader } from "mysql2";
+import { Company, Product, ScannedArticle, User, Zone } from "./data";
 
 // --- Authentication Actions ---
 
@@ -26,11 +28,14 @@ export async function logout() {
 
 // --- User Actions ---
 export async function getUsers(): Promise<User[]> {
-  const session = await getCurrentUser();
-  if (!session) return [];
+    const session = await getCurrentUser();
+    if (!session) return [];
 
-  // An admin can only see users from their own company.
-  return getDbUsers().filter(u => u.companyId === session.companyId);
+    const result = await query<User[] & RowDataPacket[]>(
+        'SELECT id, name, email, role, companyId, createdAt FROM users WHERE companyId = ?',
+        [session.companyId]
+    );
+    return result;
 }
 
 export async function deleteUser(userId: string) {
@@ -39,22 +44,21 @@ export async function deleteUser(userId: string) {
         return { error: "No autorizado." };
     }
 
-    if (userId === 'user-admin' || userId === 'user-admin-bt') {
+    if (userId.startsWith('user-admin')) { // Simplified check for default admins
         return { error: "No se puede eliminar el usuario administrador por defecto." };
-    }
-    let users = getDbUsers();
-    const userToDelete = users.find(u => u.id === userId);
-
-    if (!userToDelete) {
-        return { error: "Usuario no encontrado." };
     }
 
     // Security check: ensure admin can only delete users from their own company
-    if (userToDelete.companyId !== session.companyId) {
+    const [userToDelete] = await query<User[] & RowDataPacket[]>(
+        'SELECT companyId FROM users WHERE id = ?', [userId]
+    );
+
+    if (!userToDelete || userToDelete.companyId !== session.companyId) {
         return { error: "No tienes permiso para eliminar este usuario." };
     }
 
-    setDbUsers(users.filter(u => u.id !== userId));
+    await query('DELETE FROM users WHERE id = ?', [userId]);
+
     revalidatePath("/users");
     return { success: "Usuario eliminado con éxito." };
 }
@@ -71,26 +75,30 @@ export async function createUser(data: z.infer<typeof userSchema>) {
     }
     const { name, email, companyId, role, password } = validatedFields.data;
 
-    let users = getDbUsers();
-    if (users.some(u => u.email === email)) {
+    const [existingUser] = await query<User[] & RowDataPacket[]>(
+        'SELECT id FROM users WHERE email = ?', [email]
+    );
+    if (existingUser) {
         return { error: "Ya existe un usuario con este correo electrónico." };
     }
-    
-    // In a real app, the companyId should be validated against the admin's own company,
-    // unless they are a super-admin. Here we allow it for demo purposes.
 
+    const newId = `user-${Date.now()}`;
     const newUser: User = {
-        id: `user-${Date.now()}`,
+        id: newId,
         name,
         email,
         companyId,
         role,
         createdAt: new Date().toISOString(),
-        // In a real app, you would hash the password here before saving
-        password: password || 'password123' // fallback for demo
+        // In a real app, hash the password here. Storing as plain text for demo only.
+        password: password || 'password123'
     };
-    
-    setDbUsers([newUser, ...users]);
+
+    await query(
+        'INSERT INTO users (id, name, email, companyId, role, password, createdAt) VALUES (?, ?, ?, ?, ?, ?, ?)',
+        [newUser.id, newUser.name, newUser.email, newUser.companyId, newUser.role, newUser.password, newUser.createdAt]
+    );
+
     revalidatePath("/users");
     return { success: `Usuario "${name}" creado con éxito.` };
 }
@@ -106,31 +114,33 @@ export async function updateUser(data: z.infer<typeof userSchema>) {
         return { error: "Datos proporcionados no válidos." };
     }
     const { id, name, email, companyId, role, password } = validatedFields.data;
-    let users = getDbUsers();
-    const userIndex = users.findIndex(u => u.id === id);
 
-    if (userIndex === -1) {
-        return { error: "Usuario no encontrado." };
+    const [userToUpdate] = await query<User[] & RowDataPacket[]>(
+      'SELECT companyId FROM users WHERE id = ?', [id]
+    );
+    
+    if (!userToUpdate || userToUpdate.companyId !== session.companyId) {
+        return { error: "No tienes permiso para actualizar este usuario." };
     }
 
-    // Security check: ensure admin can only update users in their own company
-    if (users[userIndex].companyId !== session.companyId) {
-         return { error: "No tienes permiso para actualizar este usuario." };
-    }
-
-    // Prevent changing email to one that already exists
-    if (users.some(u => u.email === email && u.id !== id)) {
+    const [existingEmail] = await query<User[] & RowDataPacket[]>(
+        'SELECT id FROM users WHERE email = ? AND id != ?', [email, id]
+    );
+    if (existingEmail) {
         return { error: "Ya existe otro usuario con este correo electrónico." };
     }
-
-    users[userIndex] = { ...users[userIndex], name, email, companyId, role };
-
+    
     if (password) {
-      // In a real app, you would hash the new password here
-      users[userIndex].password = password;
+        await query(
+            'UPDATE users SET name = ?, email = ?, companyId = ?, role = ?, password = ? WHERE id = ?',
+            [name, email, companyId, role, password, id]
+        );
+    } else {
+        await query(
+            'UPDATE users SET name = ?, email = ?, companyId = ?, role = ? WHERE id = ?',
+            [name, email, companyId, role, id]
+        );
     }
-
-    setDbUsers(users);
 
     revalidatePath("/users");
     return { success: `Usuario "${name}" actualizado con éxito.` };
@@ -140,149 +150,147 @@ export async function updateUser(data: z.infer<typeof userSchema>) {
 export async function getCompanies(): Promise<Company[]> {
     const session = await getCurrentUser();
     if (!session) return [];
-    // In this demo, an admin can see all companies to assign users,
-    // but in a strict multi-tenant system, this might be restricted.
-    return getDbCompanies();
+    
+    return await query<Company[] & RowDataPacket[]>('SELECT * FROM companies');
 }
 
 
 // --- Zone Actions ---
-
 export async function getZones(): Promise<Zone[]> {
     const session = await getCurrentUser();
     if (!session) return [];
     
-    // Filter zones by the logged-in user's company
-    return getDbZones()
-        .filter(z => z.companyId === session.companyId)
-        .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+    const result = await query<Zone[] & RowDataPacket[]>(
+        'SELECT * FROM zones WHERE companyId = ? ORDER BY createdAt DESC',
+        [session.companyId]
+    );
+    return result;
 }
 
 export async function getZonesForPrint(fromZoneId: string, toZoneId: string): Promise<Zone[]> {
     const session = await getCurrentUser();
     if (!session) return [];
 
-    const allZonesForCompany = getDbZones()
-        .filter(z => z.companyId === session.companyId)
-        .sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true }));
-    
-    const fromIndex = allZonesForCompany.findIndex(z => z.id === fromZoneId);
-    const toIndex = allZonesForCompany.findIndex(z => z.id === toZoneId);
+    const allZones = await query<Zone[] & RowDataPacket[]>(
+        'SELECT * FROM zones WHERE companyId = ? ORDER BY name ASC',
+        [session.companyId]
+    );
+
+    const fromIndex = allZones.findIndex(z => z.id === fromZoneId);
+    const toIndex = allZones.findIndex(z => z.id === toZoneId);
 
     if (fromIndex === -1 || toIndex === -1) {
         return [];
     }
     
-    return allZonesForCompany.slice(fromIndex, toIndex + 1);
+    return allZones.slice(fromIndex, toIndex + 1);
 }
-
 
 export async function addZonesBatch(data: z.infer<typeof zoneBuilderSchema>) {
     const session = await getCurrentUser();
     if (!session) return { error: "No autorizado." };
     
     const validatedFields = zoneBuilderSchema.safeParse(data);
-
     if (!validatedFields.success) {
-        return { error: "Datos proporcionados no válidos para el constructor de zonas." };
+        return { error: "Datos proporcionados no válidos." };
     }
 
     const { streetPrefix, streetFrom, streetTo, rackPrefix, rackFrom, rackTo } = validatedFields.data;
-    const zones = getDbZones();
-    const newZones: Zone[] = [];
     const companyId = session.companyId; 
-
+    
+    const newZones: Omit<Zone, 'id' | 'createdAt'>[] = [];
     for (let s = streetFrom; s <= streetTo; s++) {
         for (let r = rackFrom; r <= rackTo; r++) {
             const street = s.toString().padStart(2, '0');
             const rack = r.toString().padStart(2, '0');
             const zoneName = `${streetPrefix}${street}-${rackPrefix}${rack}`;
-            
-            if (!zones.some(z => z.name === zoneName && z.companyId === companyId) && !newZones.some(z => z.name === zoneName)) {
-                 newZones.push({
-                    id: `zone-${Date.now()}-${s}-${r}`,
-                    name: zoneName,
-                    description: `Zona ubicada en Calle ${street}, Estantería ${rack}`,
-                    createdAt: new Date().toISOString(),
-                    companyId: companyId,
-                });
-            }
+            newZones.push({
+                name: zoneName,
+                description: `Zona ubicada en Calle ${street}, Estantería ${rack}`,
+                companyId: companyId,
+            });
         }
     }
     
-    if (newZones.length === 0) {
+    if (newZones.length === 0) return { error: "No hay zonas para crear." };
+
+    // Insert new zones, ignoring duplicates on zone name for the same company
+    const values = newZones.map(z => [
+        `zone-${Date.now()}-${Math.random()}`, 
+        z.name, 
+        z.description, 
+        new Date(), 
+        z.companyId
+    ]);
+
+    const result = await query<ResultSetHeader>(
+      'INSERT IGNORE INTO zones (id, name, description, createdAt, companyId) VALUES ?',
+      [values]
+    );
+
+    if (result.affectedRows === 0) {
         return { error: "No hay nuevas zonas para crear. Puede que ya existan." };
     }
 
-    setDbZones([...newZones, ...zones]);
     revalidatePath("/zones");
-    revalidatePath("/ean"); 
-    revalidatePath("/serials"); 
+    revalidatePath("/ean");
+    revalidatePath("/serials");
     revalidatePath("/dashboard");
-    return { success: `${newZones.length} zonas creadas con éxito.` };
+    return { success: `${result.affectedRows} zonas creadas con éxito.` };
 }
 
-
 export async function updateZone(data: z.infer<typeof zoneSchema>) {
-  const session = await getCurrentUser();
-  if (!session) return { error: "No autorizado." };
+    const session = await getCurrentUser();
+    if (!session) return { error: "No autorizado." };
 
-  const validatedFields = zoneSchema.safeParse(data);
+    const validatedFields = zoneSchema.safeParse(data);
+    if (!validatedFields.success || !validatedFields.data.id) {
+        return { error: "Datos proporcionados no válidos." };
+    }
+    const { id, name, description } = validatedFields.data;
 
-  if (!validatedFields.success || !validatedFields.data.id) {
-    return { error: "Datos proporcionados no válidos." };
-  }
+    const [zoneToUpdate] = await query<Zone[] & RowDataPacket[]>(
+        'SELECT companyId FROM zones WHERE id = ?', [id]
+    );
 
-  const { id, name, description } = validatedFields.data;
-  let zones = getDbZones();
-  const zoneIndex = zones.findIndex(z => z.id === id);
+    if (!zoneToUpdate || zoneToUpdate.companyId !== session.companyId) {
+        return { error: "No tienes permiso para actualizar esta zona." };
+    }
 
-  if (zoneIndex === -1) {
-    return { error: "Zona no encontrada." };
-  }
+    await query('UPDATE zones SET name = ?, description = ? WHERE id = ?', [name, description, id]);
 
-  // Security check: ensure user has permission for this zone's company
-  if (zones[zoneIndex].companyId !== session.companyId) {
-      return { error: "No tienes permiso para actualizar esta zona." };
-  }
-
-  zones[zoneIndex] = { ...zones[zoneIndex], name, description };
-  setDbZones(zones);
-
-  revalidatePath("/zones");
-  revalidatePath("/ean");
-  revalidatePath("/serials");
-  revalidatePath("/dashboard");
-  return { success: `Zona "${name}" actualizada con éxito.` };
+    revalidatePath("/zones");
+    revalidatePath("/ean");
+    revalidatePath("/serials");
+    revalidatePath("/dashboard");
+    return { success: `Zona "${name}" actualizada con éxito.` };
 }
 
 export async function deleteZone(zoneId: string) {
-  const session = await getCurrentUser();
-  if (!session) return { error: "No autorizado." };
-
-  let zones = getDbZones();
-  const zone = zones.find(z => z.id === zoneId);
-
-  // Security check
-  if (!zone || zone.companyId !== session.companyId) {
-      return { error: "No tienes permiso para eliminar esta zona." };
-  }
-  
-  const zoneName = zone.name;
-  setDbZones(zones.filter(z => z.id !== zoneId));
-  
-  revalidatePath("/zones");
-  revalidatePath("/ean");
-  revalidatePath("/serials");
-  revalidatePath("/dashboard");
-  return { success: `Zona "${zoneName}" eliminada con éxito.` };
+    const session = await getCurrentUser();
+    if (!session) return { error: "No autorizado." };
+    
+    const [zoneToDelete] = await query<Zone[] & RowDataPacket[]>(
+        'SELECT name, companyId FROM zones WHERE id = ?', [zoneId]
+    );
+    
+    if (!zoneToDelete || zoneToDelete.companyId !== session.companyId) {
+        return { error: "No tienes permiso para eliminar esta zona." };
+    }
+    
+    await query('DELETE FROM zones WHERE id = ?', [zoneId]);
+    
+    revalidatePath("/zones");
+    revalidatePath("/ean");
+    revalidatePath("/serials");
+    revalidatePath("/dashboard");
+    return { success: `Zona "${zoneToDelete.name}" eliminada con éxito.` };
 }
 
 
 // --- Master Product Actions ---
 export async function getProducts(): Promise<Product[]> {
-    // This now reads from localStorage-backed store
-    return getDbProducts();
+    return await query<Product[] & RowDataPacket[]>('SELECT * FROM products');
 }
 
 export async function addProductsFromCsv(products: Product[]) {
@@ -293,45 +301,44 @@ export async function addProductsFromCsv(products: Product[]) {
 
     const validatedFields = productsCsvSchema.safeParse(products);
     if (!validatedFields.success) {
-        return { error: "El formato del CSV no es válido. Asegúrate de que tenga las columnas 'code', 'sku', y 'description'." };
-    }
-
-    let allProducts = getDbProducts();
-    const newOrUpdatedProducts = new Map(allProducts.map(p => [p.code, p]));
-
-    for (const product of validatedFields.data) {
-        newOrUpdatedProducts.set(product.code, product);
+        return { error: "El formato del CSV no es válido." };
     }
     
-    setDbProducts(Array.from(newOrUpdatedProducts.values()));
+    if (products.length === 0) {
+      return { success: "No se encontraron artículos para importar." };
+    }
+
+    const values = validatedFields.data.map(p => [p.code, p.sku, p.description]);
+    const sql = "INSERT INTO products (code, sku, description) VALUES ? ON DUPLICATE KEY UPDATE sku=VALUES(sku), description=VALUES(description)";
+    
+    const result = await query<ResultSetHeader>(sql, [values]);
 
     revalidatePath("/articles");
-    return { success: `${products.length} artículos importados o actualizados correctamente.` };
+    return { success: `${result.affectedRows} artículos importados o actualizados correctamente.` };
 }
 
 export async function validateEan(ean: string): Promise<{ exists: boolean; isSerial: boolean }> {
-  const products = getDbProducts();
-  const product = products.find(p => p.code === ean);
-  const exists = !!product;
+    const [product] = await query<Product[] & RowDataPacket[]>(
+        'SELECT code FROM products WHERE code = ?', [ean]
+    );
+    const exists = !!product;
   
-  let isSerial = true; // Assume it's a serial by default
-  if (exists) {
-    // An EAN starts with '779' and has 13 digits. Everything else is a serial.
-    const isEan = product.code.startsWith('779') && product.code.length === 13;
-    isSerial = !isEan;
-  }
+    let isSerial = true;
+    if (exists) {
+        const isEan = product.code.startsWith('779') && product.code.length === 13;
+        isSerial = !isEan;
+    }
   
-  return { exists, isSerial };
+    return { exists, isSerial };
 }
-
 
 export async function deleteAllProducts() {
     const session = await getCurrentUser();
-    if (!session) {
-        return { error: "No autorizado." };
-    }
-    // For the demo, we'll allow it and clear the entire list from localStorage
-    setDbProducts([]);
+    if (!session) return { error: "No autorizado." };
+    
+    // In a multi-tenant app, you'd add a companyId to products. Here we clear all.
+    await query('DELETE FROM products');
+
     revalidatePath("/articles");
     revalidatePath("/ean");
     revalidatePath("/serials");
@@ -340,20 +347,19 @@ export async function deleteAllProducts() {
 
 
 // --- Article Scan Actions ---
-
 export async function getScannedArticles(): Promise<ScannedArticle[]> {
-  const session = await getCurrentUser();
-  if (!session) return [];
-  
-  const articles = getDbScannedArticles().filter(a => a.companyId === session.companyId);
-  const zones = getDbZones().filter(z => z.companyId === session.companyId);
-  
-  return articles
-    .map(article => ({
-        ...article,
-        zoneName: zones.find(z => z.id === article.zoneId)?.name || 'Zona Desconocida'
-    }))
-    .sort((a, b) => new Date(b.scannedAt).getTime() - new Date(a.scannedAt).getTime());
+    const session = await getCurrentUser();
+    if (!session) return [];
+
+    const sql = `
+        SELECT sa.*, z.name as zoneName 
+        FROM scannedArticles sa
+        LEFT JOIN zones z ON sa.zoneId = z.id
+        WHERE sa.companyId = ?
+        ORDER BY sa.scannedAt DESC
+    `;
+    const articles = await query<ScannedArticle[] & RowDataPacket[]>(sql, [session.companyId]);
+    return articles;
 }
 
 export async function addScansBatch(scans: z.infer<typeof scanBatchSchema>) {
@@ -361,85 +367,79 @@ export async function addScansBatch(scans: z.infer<typeof scanBatchSchema>) {
     if (!session) return { error: "No autorizado." };
     
     const validatedFields = scanBatchSchema.safeParse(scans);
-
-    if (!validatedFields.success) {
+    if (!validatedFields.success || validatedFields.data.length === 0) {
         return { error: "Datos de lote no válidos." };
     }
     
     const companyId = session.companyId; 
     const userId = session.id;
 
+    const eanList = validatedFields.data.map(s => s.ean);
+    const productsInDb = await query<Product[] & RowDataPacket[]>(
+      'SELECT code, sku, description FROM products WHERE code IN (?)', [eanList]
+    );
+    const productMap = new Map(productsInDb.map(p => [p.code, p]));
+    
+    const values = validatedFields.data.map((scan, index) => {
+        const productInfo = productMap.get(scan.ean);
+        return [
+            `scan-batch-${Date.now()}-${index}`,
+            scan.ean,
+            productInfo?.sku || 'N/A',
+            productInfo?.description || 'Producto no encontrado',
+            scan.scannedAt,
+            scan.zoneId,
+            userId,
+            scan.countNumber,
+            false, // isSerial
+            companyId
+        ];
+    });
 
-    const zones = getDbZones();
-    const allArticles = getDbScannedArticles();
-    const products = getDbProducts();
+    if (values.length === 0) return { success: "No hay nuevos escaneos para agregar." };
 
-    const newScans: ScannedArticle[] = [];
-    for (const [index, scan] of validatedFields.data.entries()) {
-        const productInfo = products.find(p => p.code === scan.ean);
-        if (!productInfo) {
-            return { error: `El artículo con EAN "${scan.ean}" no existe en el maestro de productos.` };
-        }
+    await query(
+        'INSERT INTO scannedArticles (id, ean, sku, description, scannedAt, zoneId, userId, countNumber, isSerial, companyId) VALUES ?',
+        [values]
+    );
 
-        const zone = zones.find(z => z.id === scan.zoneId && z.companyId === companyId);
-        newScans.push({
-            id: `scan-batch-${Date.now()}-${index}`,
-            ean: scan.ean,
-            sku: productInfo?.sku || 'N/A',
-            description: productInfo?.description || 'Producto no encontrado',
-            zoneId: scan.zoneId,
-            zoneName: zone?.name || 'Zona Desconocida',
-            scannedAt: scan.scannedAt,
-            userId: userId,
-            countNumber: scan.countNumber,
-            isSerial: false,
-            companyId: companyId,
-        });
-    }
-
-    setDbScannedArticles([...newScans, ...allArticles]);
     revalidatePath("/ean");
     revalidatePath("/scans");
     revalidatePath("/dashboard");
     revalidatePath("/report");
     revalidatePath("/sku-summary");
     revalidatePath("/zone-summary");
-    return { success: `Se cargaron ${newScans.length} escaneos con éxito.` };
+    return { success: `Se cargaron ${values.length} escaneos con éxito.` };
 }
 
 export async function deleteScanByEan(ean: string) {
-  const session = await getCurrentUser();
-  if (!session) return { error: "No autorizado." };
+    const session = await getCurrentUser();
+    if (!session) return { error: "No autorizado." };
 
-  let articles = getDbScannedArticles();
-  const scansForEan = articles.filter(a => a.ean === ean && a.companyId === session.companyId);
+    const result = await query<ResultSetHeader>(
+        'DELETE FROM scannedArticles WHERE ean = ? AND companyId = ?',
+        [ean, session.companyId]
+    );
 
-  if (scansForEan.length === 0) {
+    if (result.affectedRows === 0) {
       return { error: "No se encontraron escaneos para este código." };
-  }
+    }
 
-  setDbScannedArticles(articles.filter(a => a.ean !== ean || a.companyId !== session.companyId));
-
-  revalidatePath("/scans");
-  revalidatePath("/ean");
-  revalidatePath("/serials");
-  revalidatePath("/dashboard");
-  revalidatePath("/report");
-  revalidatePath("/sku-summary");
-  revalidatePath("/zone-summary");
-  return { success: `Se eliminaron ${scansForEan.length} registros para el código ${ean}.` };
+    revalidatePath("/scans");
+    revalidatePath("/ean");
+    revalidatePath("/serials");
+    revalidatePath("/dashboard");
+    revalidatePath("/report");
+    revalidatePath("/sku-summary");
+    revalidatePath("/zone-summary");
+    return { success: `Se eliminaron ${result.affectedRows} registros para el código ${ean}.` };
 }
 
 export async function deleteAllScans() {
     const session = await getCurrentUser();
     if (!session) return { error: "No autorizado." };
-
-    const companyId = session.companyId;
-    let allScans = getDbScannedArticles();
     
-    const scansForOtherCompanies = allScans.filter(a => a.companyId !== companyId);
-    
-    setDbScannedArticles(scansForOtherCompanies);
+    await query('DELETE FROM scannedArticles WHERE companyId = ?', [session.companyId]);
 
     revalidatePath("/scans");
     revalidatePath("/ean");
@@ -452,107 +452,98 @@ export async function deleteAllScans() {
     return { success: "Todos los artículos escaneados para tu empresa han sido eliminados." };
 }
 
-
 export async function addSerialsBatch(serials: string[], zoneId: string, countNumber: number) {
     const session = await getCurrentUser();
     if (!session) return { error: "No autorizado." };
 
     const validatedFields = serialBatchSchema.safeParse({ serials, zoneId, countNumber });
-     if (!validatedFields.success) {
+    if (!validatedFields.success || serials.length === 0) {
         return { error: "Datos de lote de series no válidos." };
     }
 
-    const zones = getDbZones();
-    const allArticles = getDbScannedArticles();
-    const zone = zones.find(z => z.id === zoneId);
-    const products = getDbProducts();
+    const productsInDb = await query<Product[] & RowDataPacket[]>(
+      'SELECT code, sku, description FROM products WHERE code IN (?)', [serials]
+    );
+    const productMap = new Map(productsInDb.map(p => [p.code, p]));
+
+    const values = serials.map((serial, index) => {
+      const productInfo = productMap.get(serial);
+      if (!productInfo) return null; // Should not happen if validateEan is used on client
+      return [
+        `serial-batch-${Date.now()}-${index}`,
+        serial,
+        productInfo.sku,
+        productInfo.description,
+        new Date(),
+        zoneId,
+        session.id,
+        countNumber,
+        true, // isSerial
+        session.companyId
+      ];
+    }).filter(v => v !== null);
     
-    const companyId = session.companyId; 
-    const userId = session.id;
+    if (values.length === 0) return { success: "No hay nuevas series para agregar." };
 
-    if (!zone || zone.companyId !== companyId) {
-        return { error: "Zona seleccionada no encontrada o no tienes permiso." };
-    }
-    
-    const newEntries: ScannedArticle[] = [];
-    for(const [index, serial] of serials.entries()) {
-        const productInfo = products.find(p => p.code === serial);
-        if (!productInfo) {
-            return { error: `La serie "${serial}" no existe en el maestro de productos.` };
-        }
+    await query(
+      'INSERT INTO scannedArticles (id, ean, sku, description, scannedAt, zoneId, userId, countNumber, isSerial, companyId) VALUES ?',
+      [values]
+    );
 
-        newEntries.push({
-            id: `serial-batch-${Date.now()}-${index}`,
-            ean: serial, // Storing serial in ean field
-            sku: productInfo?.sku || 'N/A',
-            description: productInfo?.description || 'Producto no encontrado',
-            zoneId: zoneId,
-            zoneName: zone.name,
-            scannedAt: new Date().toISOString(),
-            userId: userId,
-            countNumber: countNumber,
-            isSerial: true,
-            companyId: companyId,
-        });
-    }
-
-
-    setDbScannedArticles([...newEntries, ...allArticles]);
     revalidatePath("/scans");
     revalidatePath("/serials");
     revalidatePath("/dashboard");
     revalidatePath("/report");
     revalidatePath("/sku-summary");
     revalidatePath("/zone-summary");
-    return { success: `Se cargaron ${newEntries.length} números de serie con éxito.` };
+    return { success: `Se cargaron ${values.length} números de serie con éxito.` };
 }
 
 // --- Dashboard & Report Actions ---
-
 export async function getDashboardStats() {
     const session = await getCurrentUser();
     if (!session) {
-        return {
-            eanScansToday: 0, seriesScansToday: 0, activeZones: 0,
-            totalItems: 0, chartData: []
-        };
+        return { eanScansToday: 0, seriesScansToday: 0, activeZones: 0, totalItems: 0, chartData: [] };
     }
     const companyId = session.companyId;
-    const scans = getDbScannedArticles().filter(s => s.companyId === companyId);
-    const zones = getDbZones().filter(z => z.companyId === companyId);
 
-    const today = new Date().toDateString();
-    const todayScans = scans.filter(scan => new Date(scan.scannedAt).toDateString() === today);
+    const todayStart = new Date();
+    todayStart.setHours(0, 0, 0, 0);
+
+    const [scansToday] = await query<RowDataPacket[]>(
+        `SELECT 
+            SUM(CASE WHEN isSerial = 0 THEN 1 ELSE 0 END) as eanScansToday,
+            SUM(CASE WHEN isSerial = 1 THEN 1 ELSE 0 END) as seriesScansToday
+         FROM scannedArticles WHERE companyId = ? AND scannedAt >= ?`,
+        [companyId, todayStart]
+    );
+
+    const [totals] = await query<RowDataPacket[]>(
+        `SELECT 
+            (SELECT COUNT(*) FROM zones WHERE companyId = ?) as activeZones,
+            (SELECT COUNT(*) FROM scannedArticles WHERE companyId = ?) as totalItems
+        `, [companyId, companyId]
+    );
+
+    const chartDataResult = await query<RowDataPacket[]>(
+        `SELECT 
+            z.name,
+            SUM(CASE WHEN sa.countNumber = 1 THEN 1 ELSE 0 END) as count1,
+            SUM(CASE WHEN sa.countNumber = 2 THEN 1 ELSE 0 END) as count2,
+            SUM(CASE WHEN sa.countNumber = 3 THEN 1 ELSE 0 END) as count3
+         FROM scannedArticles sa
+         JOIN zones z ON sa.zoneId = z.id
+         WHERE sa.companyId = ?
+         GROUP BY z.name`,
+        [companyId]
+    );
     
-    const eanScansToday = todayScans.filter(scan => !scan.isSerial).length;
-    const seriesScansToday = todayScans.filter(scan => scan.isSerial).length;
-    
-    const activeZones = zones.length;
-    const totalItems = scans.length;
-
-    const scansByZoneAndCount = scans.reduce((acc, scan) => {
-        const zoneName = scan.zoneName;
-        if (!acc[zoneName]) {
-            acc[zoneName] = { name: zoneName, count1: 0, count2: 0, count3: 0 };
-        }
-        if (scan.countNumber === 1) {
-            acc[zoneName].count1 += 1;
-        } else if (scan.countNumber === 2) {
-            acc[zoneName].count2 += 1;
-        } else if (scan.countNumber === 3) {
-            acc[zoneName].count3 += 1;
-        }
-        return acc;
-    }, {} as Record<string, { name: string; count1: number; count2: number; count3: number }>);
-
-    const chartData = Object.values(scansByZoneAndCount);
-
     return {
-        eanScansToday,
-        seriesScansToday,
-        activeZones,
-        totalItems,
-        chartData
+        eanScansToday: Number(scansToday.eanScansToday) || 0,
+        seriesScansToday: Number(scansToday.seriesScansToday) || 0,
+        activeZones: Number(totals.activeZones) || 0,
+        totalItems: Number(totals.totalItems) || 0,
+        chartData: chartDataResult
     };
 }
 
@@ -573,46 +564,34 @@ export async function getCountsReport(): Promise<CountsReportItem[]> {
     const session = await getCurrentUser();
     if (!session) return [];
 
-    const companyId = session.companyId;
-    const scans = getDbScannedArticles().filter(s => s.companyId === companyId);
-    const products = getDbProducts();
-    const users = getDbUsers(); // Get all users to find names by ID
-
-    const reportMap = scans.reduce((acc, scan) => {
-        const key = scan.ean; 
-        const productInfo = products.find(p => p.code === scan.ean);
-
-        if (!acc[key]) {
-            acc[key] = {
-                key: key,
-                ean: scan.ean,
-                sku: productInfo?.sku || scan.sku,
-                description: productInfo?.description || scan.description,
-                count1_user: null,
-                count1_zone: null,
-                count2_user: null,
-                count2_zone: null,
-                count3_user: null,
-                count3_zone: null,
-            };
-        }
-        const user = users.find(u => u.id === scan.userId);
-
-        if (scan.countNumber === 1) {
-            acc[key].count1_user = user?.name || scan.userId;
-            acc[key].count1_zone = scan.zoneName;
-        } else if (scan.countNumber === 2) {
-            acc[key].count2_user = user?.name || scan.userId;
-            acc[key].count2_zone = scan.zoneName;
-        } else if (scan.countNumber === 3) {
-            acc[key].count3_user = user?.name || scan.userId;
-            acc[key].count3_zone = scan.zoneName;
-        }
-        
-        return acc;
-    }, {} as Record<string, CountsReportItem>);
-
-    return Object.values(reportMap).sort((a, b) => a.ean.localeCompare(b.ean));
+    const sql = `
+        SELECT
+            p.code AS ean,
+            p.sku,
+            p.description,
+            MAX(CASE WHEN sa.countNumber = 1 THEN u1.name ELSE NULL END) AS count1_user,
+            MAX(CASE WHEN sa.countNumber = 1 THEN z1.name ELSE NULL END) AS count1_zone,
+            MAX(CASE WHEN sa.countNumber = 2 THEN u2.name ELSE NULL END) AS count2_user,
+            MAX(CASE WHEN sa.countNumber = 2 THEN z2.name ELSE NULL END) AS count2_zone,
+            MAX(CASE WHEN sa.countNumber = 3 THEN u3.name ELSE NULL END) AS count3_user,
+            MAX(CASE WHEN sa.countNumber = 3 THEN z3.name ELSE NULL END) AS count3_zone
+        FROM
+            (SELECT DISTINCT ean FROM scannedArticles WHERE companyId = ?) AS distinct_eans
+        LEFT JOIN products p ON distinct_eans.ean = p.code
+        LEFT JOIN scannedArticles sa ON p.code = sa.ean AND sa.companyId = ?
+        LEFT JOIN users u1 ON sa.userId = u1.id AND sa.countNumber = 1
+        LEFT JOIN zones z1 ON sa.zoneId = z1.id AND sa.countNumber = 1
+        LEFT JOIN users u2 ON sa.userId = u2.id AND sa.countNumber = 2
+        LEFT JOIN zones z2 ON sa.zoneId = z2.id AND sa.countNumber = 2
+        LEFT JOIN users u3 ON sa.userId = u3.id AND sa.countNumber = 3
+        LEFT JOIN zones z3 ON sa.zoneId = z3.id AND sa.countNumber = 3
+        GROUP BY
+            p.code, p.sku, p.description
+        ORDER BY
+            p.code;
+    `;
+    const reportData = await query<(CountsReportItem & RowDataPacket)[]>(sql, [session.companyId, session.companyId]);
+    return reportData.map(item => ({ ...item, key: item.ean }));
 }
 
 export type SkuSummaryItem = {
@@ -628,35 +607,21 @@ export async function getSkuSummary(): Promise<SkuSummaryItem[]> {
     const session = await getCurrentUser();
     if (!session) return [];
 
-    const companyId = session.companyId;
-    const scans = getDbScannedArticles().filter(s => s.companyId === companyId);
-
-    const summaryMap = scans.reduce((acc, scan) => {
-        if (!scan.sku || scan.sku === 'N/A') {
-            return acc;
-        }
-        
-        if (!acc[scan.sku]) {
-            acc[scan.sku] = {
-                sku: scan.sku,
-                description: scan.description,
-                count1: 0,
-                count2: 0,
-                count3: 0,
-                total: 0,
-            };
-        }
-
-        const item = acc[scan.sku];
-        if (scan.countNumber === 1) item.count1++;
-        if (scan.countNumber === 2) item.count2++;
-        if (scan.countNumber === 3) item.count3++;
-        item.total++;
-
-        return acc;
-    }, {} as Record<string, SkuSummaryItem>);
-
-    return Object.values(summaryMap).sort((a, b) => a.sku.localeCompare(b.sku));
+    const sql = `
+        SELECT
+            sku,
+            MAX(description) as description,
+            SUM(CASE WHEN countNumber = 1 THEN 1 ELSE 0 END) as count1,
+            SUM(CASE WHEN countNumber = 2 THEN 1 ELSE 0 END) as count2,
+            SUM(CASE WHEN countNumber = 3 THEN 1 ELSE 0 END) as count3,
+            COUNT(*) as total
+        FROM scannedArticles
+        WHERE companyId = ? AND sku IS NOT NULL AND sku != 'N/A'
+        GROUP BY sku
+        ORDER BY sku;
+    `;
+    const summaryData = await query<(SkuSummaryItem & RowDataPacket)[]>(sql, [session.companyId]);
+    return summaryData;
 }
 
 
@@ -672,28 +637,19 @@ export async function getZoneSummary(): Promise<ZoneSummaryItem[]> {
     const session = await getCurrentUser();
     if (!session) return [];
     
-    const companyId = session.companyId;
-    const scans = getDbScannedArticles().filter(s => s.companyId === companyId);
-
-    const summaryMap = scans.reduce((acc, scan) => {
-        if (!acc[scan.zoneName]) {
-            acc[scan.zoneName] = {
-                zoneName: scan.zoneName,
-                count1: 0,
-                count2: 0,
-                count3: 0,
-                total: 0,
-            };
-        }
-
-        const item = acc[scan.zoneName];
-        if (scan.countNumber === 1) item.count1++;
-        if (scan.countNumber === 2) item.count2++;
-        if (scan.countNumber === 3) item.count3++;
-        item.total++;
-
-        return acc;
-    }, {} as Record<string, ZoneSummaryItem>);
-
-    return Object.values(summaryMap).sort((a, b) => a.zoneName.localeCompare(b.zoneName));
+    const sql = `
+        SELECT
+            z.name as zoneName,
+            SUM(CASE WHEN sa.countNumber = 1 THEN 1 ELSE 0 END) as count1,
+            SUM(CASE WHEN sa.countNumber = 2 THEN 1 ELSE 0 END) as count2,
+            SUM(CASE WHEN sa.countNumber = 3 THEN 1 ELSE 0 END) as count3,
+            COUNT(sa.id) as total
+        FROM zones z
+        JOIN scannedArticles sa ON z.id = sa.zoneId
+        WHERE z.companyId = ?
+        GROUP BY z.name
+        ORDER BY z.name;
+    `;
+    const summaryData = await query<(ZoneSummaryItem & RowDataPacket)[]>(sql, [session.companyId]);
+    return summaryData;
 }
