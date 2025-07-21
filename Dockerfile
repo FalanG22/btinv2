@@ -1,26 +1,38 @@
-# 1. Usar una imagen oficial de Node.js como base.
-# Se elige la versión 20-alpine por ser ligera y segura.
+# ---- Base Stage ----
+# Utiliza una imagen oficial de Node.js 20 como base.
+# 'alpine' es una versión ligera, ideal para producción.
 FROM node:20-alpine AS base
-
-# 2. Establecer el directorio de trabajo dentro del contenedor.
 WORKDIR /app
 
-# 3. Copiar los archivos de definición de paquetes e instalarlos.
-# Se copian por separado para aprovechar el caché de Docker.
-COPY package.json ./
-COPY package-lock.json ./
-RUN npm install
+# ---- Dependencies Stage ----
+# Copia los archivos de manifiesto del paquete y el lockfile.
+FROM base AS deps
+COPY package.json package-lock.json ./
+# Instala solo las dependencias de producción para mantener la imagen ligera.
+RUN npm install --omit=dev
 
-# 4. Copiar el resto del código de la aplicación.
+# ---- Build Stage ----
+# Construye la aplicación Next.js.
+FROM base AS builder
+WORKDIR /app
+COPY --from=deps /app/node_modules ./node_modules
 COPY . .
-
-# 5. Construir la aplicación para producción.
+# Ejecuta el script de construcción de Next.js.
 RUN npm run build
 
-# 6. Exponer el puerto en el que se ejecutará la aplicación.
-# El script "start" de Next.js se ejecuta en el puerto 3000 por defecto.
-# (Nota: en docker-compose.yml mapearemos este puerto al que desees)
+# ---- Runner Stage ----
+# La imagen final que se ejecutará.
+FROM base AS runner
+WORKDIR /app
+
+# Copia los archivos de construcción y las dependencias de producción.
+COPY --from=builder /app/public ./public
+COPY --from=builder /app/.next/standalone ./
+COPY --from=builder /app/.next/static ./.next/static
+
+# Expone el puerto 3000 (el puerto por defecto en el que se ejecuta Next.js).
 EXPOSE 3000
 
-# 7. Definir el comando para iniciar la aplicación.
-CMD ["npm", "start"]
+# El comando para iniciar la aplicación.
+# 'node server.js' es el comando recomendado para ejecutar una app Next.js standalone.
+CMD ["node", "server.js"]
