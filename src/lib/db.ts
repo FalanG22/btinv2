@@ -3,7 +3,7 @@ import mysql from 'mysql2/promise';
 // This function creates and manages the database connection pool.
 // It uses environment variables for configuration, which are provided by docker-compose.yml.
 const pool = mysql.createPool({
-  host: process.env.DB_HOST,
+  host: 'db', // Explicitly use the Docker service name
   user: process.env.DB_USER,
   password: process.env.DB_PASSWORD,
   database: process.env.DB_DATABASE,

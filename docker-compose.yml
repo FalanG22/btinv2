@@ -9,6 +9,8 @@ services:
     depends_on:
       db:
         condition: service_healthy
+    links:
+      - "db"
     environment:
       - NODE_ENV=production
       - PORT=3000
@@ -16,6 +18,8 @@ services:
       - DB_USER=zonescan_user
       - DB_PASSWORD=your_strong_password
       - DB_DATABASE=zonescan_db
+    networks:
+      - zonescan-net
 
   db:
     image: mysql:8.0
@@ -39,6 +43,12 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+    networks:
+      - zonescan-net
+
+networks:
+  zonescan-net:
+    driver: bridge
 
 volumes:
   zonescan_db_data:
