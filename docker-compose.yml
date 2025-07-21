@@ -5,11 +5,10 @@ services:
     build: .
     container_name: zonescan-app
     ports:
-      - "9002:3000"
+      - '9002:3000'
     depends_on:
       db:
         condition: service_healthy
-    restart: unless-stopped
     environment:
       - NODE_ENV=production
       - PORT=3000
@@ -29,14 +28,14 @@ services:
       MYSQL_ROOT_PASSWORD: your_very_strong_root_password
     ports:
       # Expose MySQL on port 3307 on the host machine for external access if needed
-      - "3307:3306"
+      - '3307:3306'
     volumes:
       # Persist MySQL data in a Docker volume
       - zonescan_db_data:/var/lib/mysql
       # Run the schema.sql script on initialization
       - ./schema.sql:/docker-entrypoint-initdb.d/init.sql
     healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p$$MYSQL_ROOT_PASSWORD"]
+      test: ['CMD', 'mysqladmin', 'ping', '-h', 'localhost', '-u', 'root', '-p$$MYSQL_ROOT_PASSWORD']
       interval: 10s
       timeout: 5s
       retries: 5

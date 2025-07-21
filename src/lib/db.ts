@@ -9,11 +9,14 @@ const pool = mysql.createPool({
   database: process.env.DB_DATABASE,
   waitForConnections: true,
   connectionLimit: 10,
-  queueLimit: 0
+  queueLimit: 0,
 });
 
 // A simple query function to execute SQL queries.
-export async function query<T extends mysql.RowDataPacket[] | mysql.ResultSetHeader>(sql: string, params?: any[]): Promise<T> {
+export async function query<T extends mysql.RowDataPacket[] | mysql.ResultSetHeader>(
+  sql: string,
+  params?: any[]
+): Promise<T> {
   const [results] = await pool.execute(sql, params);
   return results as T;
 }
